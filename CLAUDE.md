@@ -2,51 +2,82 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+## Build & Development Commands
 
-This is a single-file 3D zombie shooter game built with Three.js. The entire game is contained in `game.html`.
-
-## Running the Game
-
-Open `game.html` directly in a browser (no build step required):
 ```bash
-start game.html
+npm install          # Install dependencies
+npm run dev          # Start Vite dev server with hot reload
+npm run build        # Production build to dist/
+npm run preview      # Preview production build
+```
+
+## Testing Commands
+
+```bash
+npm test                    # Run all tests once
+npm run test:watch          # Run tests in watch mode
+npm run test:coverage       # Run tests with coverage report
+
+# Run a single test file
+npx vitest run tests/GameState.test.js
+
+# Run tests matching a pattern
+npx vitest run -t "should emit"
 ```
 
 ## Architecture
 
-### Single-File Structure
-The game is self-contained in one HTML file with embedded CSS and JavaScript:
-- **CSS (lines 7-470)**: All UI styling including HUD, shop, inventory, controls panel
-- **JavaScript (lines 625+)**: Game logic using Three.js loaded via CDN
+Three.js-based 3D zombie shooter with modular ES6 architecture.
 
-### Key Game Systems
+### Core Layers
 
-**Player System**
-- Roblox-style blocky character with body parts stored in `playerBody` object
-- Weapon system: pistol (default) and shotgun (purchasable)
-- Armor system with 3 tiers: camouflage, tactical vest, heavy armor
-- First-person and third-person camera modes (V key toggle)
+- **Core** (`src/core/`) - Engine, Scene, Lighting - Three.js renderer and scene setup
+- **State** (`src/state/`) - EventBus (pub/sub) and GameState (centralized state with dot-notation paths)
+- **Entities** (`src/entities/`) - Player, Enemy, Weapon, GoreEffect
+- **Systems** (`src/systems/`) - CollisionSystem, RaycastSystem, SpawnerSystem, InputManager, AudioManager
+- **UI** (`src/ui/`) - HUD, Shop, Inventory, UIManager
 
-**Combat System**
-- Raycaster-based shooting from camera center
-- Headshot detection for shotgun (Y position > zombie.position.y + 2.3)
-- Gore effects: head explosion creates meat chunks with physics
+### Key Patterns
 
-**Entity Management**
-- `zombies[]`: Active zombies that chase and attack player
-- `deadZombies[]`: Dead zombie bodies awaiting removal (5 second delay)
-- `goreObjects[]`: Blood/meat chunks with velocity and lifetime
-- `buildings[]`: AABB collision boxes for houses and barriers
+**Event-driven communication** via EventBus:
+```javascript
+import { eventBus } from './state/EventBus.js';
+import { EVENTS } from './config/constants.js';
+eventBus.on(EVENTS.ENEMY_KILLED, (data) => { ... });
+eventBus.emit(EVENTS.ENEMY_KILLED, { reward: 50 });
+```
 
-**Shop System**
-- Items: shotgun, 3 armor tiers, pistol ammo, shotgun ammo
-- Prices defined in `buyItem()` function's `prices` object
+**Centralized state** via GameState with dot-notation:
+```javascript
+import { gameState } from './state/GameState.js';
+gameState.get('player.health');
+gameState.setState('weapons.ammo.pistol', 12);
+gameState.addCoins(50);
+```
 
-### Global State
-- `gameState`: Coins, ammo, health, armor, weapon state
-- `playerBody`: References to all player mesh parts and equipment
-- `cameraMode`: 'third' or 'first' person view
+**Game constants** in `src/config/constants.js` - PLAYER, ZOMBIE, WEAPONS, ARMOR, AMMO, EVENTS, MAP
 
-### Main Loop
-`animate()` calls: `updatePlayer()`, `updateCamera()`, `updateZombies()`, `updateDeadZombies()`, `updateGore()`
+### Entry Points
+
+- `index.html` - HTML shell with UI elements
+- `src/main.js` - Game class that wires all systems together
+- `game.html` - Legacy single-file version (2650 lines, standalone)
+
+### Testing
+
+Vitest with jsdom environment. Tests in `tests/` directory. Three.js components require mocking:
+
+```javascript
+vi.mock('three', () => ({
+    Group: vi.fn(() => ({ add: vi.fn(), position: { ... } })),
+    Mesh: vi.fn(() => ({ ... })),
+    // ...
+}));
+```
+
+## Game Mechanics Reference
+
+- **Raycasting**: `RaycastSystem.shoot()` uses Three.js `raycaster.setFromCamera()` + `intersectObjects()`
+- **Collision**: AABB-based via `CollisionSystem` for barriers
+- **Player faces -Z direction** (negative Z is forward)
+- **Headshot detection**: Enemy head mesh tagged via `userData.isHead`
