@@ -47,16 +47,18 @@ export class Enemy {
         this.torso.castShadow = true;
         this.mesh.add(this.torso);
 
-        // Head
-        this.head = new THREE.Mesh(
+        // Head (as a group to include eyes)
+        this.head = new THREE.Group();
+        this.head.position.y = 2.3;
+
+        const headMesh = new THREE.Mesh(
             new THREE.BoxGeometry(0.6, 0.6, 0.6),
             zombieSkin.clone()
         );
-        this.head.position.y = 2.3;
-        this.head.castShadow = true;
-        this.mesh.add(this.head);
+        headMesh.castShadow = true;
+        this.head.add(headMesh);
 
-        // Eyes (red)
+        // Eyes (red) - added to head so they're removed with it
         const eyeMaterial = new THREE.MeshStandardMaterial({
             color: 0xff0000,
             emissive: 0xff0000,
@@ -64,12 +66,14 @@ export class Enemy {
         });
 
         const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.05), eyeMaterial);
-        leftEye.position.set(-0.15, 2.35, 0.3);
-        this.mesh.add(leftEye);
+        leftEye.position.set(-0.15, 0.05, 0.3);
+        this.head.add(leftEye);
 
         const rightEye = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.05), eyeMaterial);
-        rightEye.position.set(0.15, 2.35, 0.3);
-        this.mesh.add(rightEye);
+        rightEye.position.set(0.15, 0.05, 0.3);
+        this.head.add(rightEye);
+
+        this.mesh.add(this.head);
 
         // Arms
         this.leftArm = new THREE.Mesh(

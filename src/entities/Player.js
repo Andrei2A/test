@@ -29,6 +29,9 @@ export class Player {
         };
 
         this.rotation = { x: 0, y: 0 };
+
+        // First-person view model (arms + gun visible to player)
+        this.fpsViewModel = null;
     }
 
     /**
@@ -38,6 +41,7 @@ export class Player {
     init() {
         this.createMesh();
         this.createCamera();
+        this.createFPSViewModel();
         this.setupControls();
         return this;
     }
@@ -62,24 +66,28 @@ export class Player {
         this.torso.castShadow = true;
         this.mesh.add(this.torso);
 
-        // Head
-        this.head = new THREE.Mesh(
+        // Head (as group with eyes)
+        this.head = new THREE.Group();
+        this.head.position.y = 2.3;
+
+        const headMesh = new THREE.Mesh(
             new THREE.BoxGeometry(0.6, 0.6, 0.6),
             skinMaterial
         );
-        this.head.position.y = 2.3;
-        this.head.castShadow = true;
-        this.mesh.add(this.head);
+        headMesh.castShadow = true;
+        this.head.add(headMesh);
 
-        // Eyes (facing -Z direction)
+        // Eyes (facing -Z direction) - added to head group
         const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
         const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), eyeMaterial);
-        leftEye.position.set(-0.15, 2.35, -0.3);
-        this.mesh.add(leftEye);
+        leftEye.position.set(-0.15, 0.05, -0.3);
+        this.head.add(leftEye);
 
         const rightEye = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), eyeMaterial);
-        rightEye.position.set(0.15, 2.35, -0.3);
-        this.mesh.add(rightEye);
+        rightEye.position.set(0.15, 0.05, -0.3);
+        this.head.add(rightEye);
+
+        this.mesh.add(this.head);
 
         // Left arm
         this.leftArm = new THREE.Mesh(
@@ -155,6 +163,78 @@ export class Player {
             1000
         );
         this.updateCameraPosition();
+    }
+
+    /**
+     * Create first-person view model (arms + gun)
+     */
+    createFPSViewModel() {
+        this.fpsViewModel = new THREE.Group();
+
+        const skinMaterial = new THREE.MeshStandardMaterial({ color: 0xffdbac });
+        const clothMaterial = new THREE.MeshStandardMaterial({ color: 0x2d2d2d });
+
+        // Right arm (holding gun)
+        const rightArm = new THREE.Mesh(
+            new THREE.BoxGeometry(0.15, 0.5, 0.15),
+            clothMaterial
+        );
+        rightArm.position.set(0.25, -0.25, -0.3);
+        rightArm.rotation.x = 0.3;
+        this.fpsViewModel.add(rightArm);
+
+        // Right hand
+        const rightHand = new THREE.Mesh(
+            new THREE.BoxGeometry(0.12, 0.15, 0.12),
+            skinMaterial
+        );
+        rightHand.position.set(0.25, -0.45, -0.45);
+        this.fpsViewModel.add(rightHand);
+
+        // Left arm
+        const leftArm = new THREE.Mesh(
+            new THREE.BoxGeometry(0.15, 0.5, 0.15),
+            clothMaterial
+        );
+        leftArm.position.set(-0.35, -0.3, -0.4);
+        leftArm.rotation.x = 0.5;
+        this.fpsViewModel.add(leftArm);
+
+        // Left hand (supporting gun)
+        const leftHand = new THREE.Mesh(
+            new THREE.BoxGeometry(0.12, 0.15, 0.12),
+            skinMaterial
+        );
+        leftHand.position.set(-0.2, -0.4, -0.6);
+        this.fpsViewModel.add(leftHand);
+
+        // Gun body
+        const gunBody = new THREE.Mesh(
+            new THREE.BoxGeometry(0.1, 0.12, 0.4),
+            new THREE.MeshStandardMaterial({ color: 0x333333 })
+        );
+        gunBody.position.set(0.2, -0.35, -0.55);
+        this.fpsViewModel.add(gunBody);
+
+        // Gun barrel
+        const gunBarrel = new THREE.Mesh(
+            new THREE.BoxGeometry(0.06, 0.06, 0.25),
+            new THREE.MeshStandardMaterial({ color: 0x222222 })
+        );
+        gunBarrel.position.set(0.2, -0.33, -0.8);
+        this.fpsViewModel.add(gunBarrel);
+
+        // Gun handle
+        const gunHandle = new THREE.Mesh(
+            new THREE.BoxGeometry(0.08, 0.18, 0.1),
+            new THREE.MeshStandardMaterial({ color: 0x222222 })
+        );
+        gunHandle.position.set(0.2, -0.48, -0.5);
+        this.fpsViewModel.add(gunHandle);
+
+        // Initially hidden (will show in first-person mode)
+        this.fpsViewModel.visible = false;
+        this.camera.add(this.fpsViewModel);
     }
 
     /**
@@ -304,7 +384,20 @@ export class Player {
             this.camera.rotation.order = 'YXZ';
             this.camera.rotation.y = this.rotation.y;
             this.camera.rotation.x = this.rotation.x;
-            this.mesh.visible = false;
+
+            // Show FPS view model (arms + gun)
+            if (this.fpsViewModel) {
+                this.fpsViewModel.visible = true;
+            }
+
+            // Hide head but show body and legs
+            if (this.head) this.head.visible = false;
+            if (this.torso) this.torso.visible = true;
+            if (this.leftArm) this.leftArm.visible = false; // Hide 3rd person arms
+            if (this.rightArmGroup) this.rightArmGroup.visible = false;
+            if (this.leftLeg) this.leftLeg.visible = true;
+            if (this.rightLeg) this.rightLeg.visible = true;
+            this.mesh.visible = true;
         } else {
             const offset = new THREE.Vector3(0, config.height, config.distance);
             offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.rotation.y);
@@ -314,6 +407,19 @@ export class Player {
                 this.group.position.y + PLAYER.HEIGHT,
                 this.group.position.z
             );
+
+            // Hide FPS view model
+            if (this.fpsViewModel) {
+                this.fpsViewModel.visible = false;
+            }
+
+            // Show full 3rd person model
+            if (this.head) this.head.visible = true;
+            if (this.torso) this.torso.visible = true;
+            if (this.leftArm) this.leftArm.visible = true;
+            if (this.rightArmGroup) this.rightArmGroup.visible = true;
+            if (this.leftLeg) this.leftLeg.visible = true;
+            if (this.rightLeg) this.rightLeg.visible = true;
             this.mesh.visible = true;
         }
     }

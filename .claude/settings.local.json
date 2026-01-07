@@ -13,7 +13,9 @@
       "Bash(git add:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: update CI to Node 20.x/22.x, remove lint job\n\n- jsdom@27 requires Node >= 20\n- Add engines field to package.json\n- Remove lint job \\(prettier not installed\\)\n\n🤖 Generated with [Claude Code]\\(https://claude.ai/code\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git push:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npm run build)",
+      "Bash(start \"\" \"http://localhost:5173\")"
     ]
   }
 }

@@ -80,4 +80,11 @@ vi.mock('three', () => ({
 - **Raycasting**: `RaycastSystem.shoot()` uses Three.js `raycaster.setFromCamera()` + `intersectObjects()`
 - **Collision**: AABB-based via `CollisionSystem` for barriers
 - **Player faces -Z direction** (negative Z is forward)
-- **Headshot detection**: Enemy head mesh tagged via `userData.isHead`
+- **Headshot detection**: Enemy head is a Group containing head mesh + eyes (removed together on headshot)
+- **First-person view**: FPS view model (arms + gun) attached to camera, body/legs visible, head hidden
+- **Camera modes**: Toggle with V key - `gameState.get('isFirstPerson')`
+
+## Node.js Requirements
+
+- Requires Node.js >= 20.0.0 (jsdom@27 dependency)
+- CI runs on Node 20.x and 22.x
