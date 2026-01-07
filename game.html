@@ -1,0 +1,2650 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zombie Shooter 3D</title>
+    <style>
+        /* ========== БАЗОВЫЕ СТИЛИ ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+        }
+
+        #gameCanvas {
+            display: block;
+        }
+
+        /* ========== ЭКРАН БЛОКИРОВКИ УКАЗАТЕЛЯ ========== */
+        #lockScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: white;
+        }
+
+        #lockScreen h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #ff4444;
+        }
+
+        #lockScreen p {
+            font-size: 18px;
+            margin-bottom: 30px;
+            color: #aaa;
+        }
+
+        #lockScreen button {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #lockScreen button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 68, 68, 0.5);
+        }
+
+        /* ========== ПРИЦЕЛ ========== */
+        #crosshair {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        #crosshair::before,
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            background: white;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        #crosshair::before {
+            width: 20px;
+            height: 2px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        #crosshair::after {
+            width: 2px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* ========== ПАНЕЛЬ УПРАВЛЕНИЯ ========== */
+        #controlsPanel {
+            position: fixed;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 10px;
+            color: white;
+            font-size: 14px;
+            z-index: 100;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-key {
+            background: linear-gradient(135deg, #4a4a4a, #2a2a2a);
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            border: 1px solid #666;
+            margin-right: 5px;
+            font-size: 12px;
+        }
+
+        /* ========== HUD ========== */
+        #hud {
+            position: fixed;
+            top: 70px;
+            left: 20px;
+            color: white;
+            z-index: 100;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .hud-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 18px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 15px;
+            border-radius: 5px;
+        }
+
+        .hud-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #coins .hud-icon { color: gold; }
+        #armor .hud-icon { color: #4a90d9; }
+        #ammo .hud-icon { color: #ff6b35; }
+        #kills .hud-icon { color: #ff4444; }
+
+        /* ========== ПОЛОСКИ ЗДОРОВЬЯ И БРОНИ ========== */
+        .hud-bar-container {
+            margin-top: 10px;
+        }
+
+        .hud-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 6px 10px;
+            border-radius: 5px;
+        }
+
+        .hud-bar-icon {
+            width: 24px;
+            margin-right: 8px;
+            font-size: 16px;
+        }
+
+        .hud-bar-bg {
+            width: 120px;
+            height: 16px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 3px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .hud-bar-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .health-fill {
+            background: linear-gradient(to bottom, #ff6b6b, #ee5a5a);
+            box-shadow: 0 0 10px rgba(255, 100, 100, 0.5);
+        }
+
+        .armor-fill {
+            background: linear-gradient(to bottom, #4a90d9, #357abd);
+            box-shadow: 0 0 10px rgba(74, 144, 217, 0.5);
+        }
+
+        .hud-bar-text {
+            margin-left: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            min-width: 30px;
+        }
+
+        /* ========== КНОПКА МАГАЗИНА ========== */
+        #shopButton {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #4a90d9, #357abd);
+            border: 2px solid #5fa8f5;
+            color: white;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(74, 144, 217, 0.3);
+        }
+
+        #shopButton:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(74, 144, 217, 0.5);
+        }
+
+        #shopButton .key-hint {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        /* ========== ИНВЕНТАРЬ ========== */
+        #inventory {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+            z-index: 100;
+        }
+
+        .inv-slot {
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #555;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            position: relative;
+        }
+
+        .inv-slot.active {
+            border-color: #ffcc00;
+            box-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
+        }
+
+        .inv-slot .slot-num {
+            position: absolute;
+            top: 2px;
+            left: 5px;
+            font-size: 10px;
+            color: #888;
+        }
+
+        .inv-slot .item-icon {
+            font-size: 24px;
+        }
+
+        /* ========== МАГАЗИН ========== */
+        #shop {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(145deg, #0d0d0d, #1a1a1a);
+            border: 2px solid #333;
+            border-radius: 20px;
+            padding: 0;
+            z-index: 200;
+            display: none;
+            min-width: 420px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8),
+                        0 0 40px rgba(0, 0, 0, 0.5),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+        }
+
+        #shop.visible {
+            display: block;
+            animation: shopOpen 0.3s ease-out;
+        }
+
+        @keyframes shopOpen {
+            from { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+
+        .shop-header {
+            background: linear-gradient(180deg, #1f1f1f, #141414);
+            padding: 20px 30px;
+            border-bottom: 1px solid #2a2a2a;
+            position: relative;
+        }
+
+        #shop h2 {
+            color: #e0e0e0;
+            text-align: center;
+            margin: 0;
+            font-size: 22px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .shop-content {
+            padding: 20px;
+        }
+
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(180deg, #1a1a1a, #141414);
+            padding: 15px 18px;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            border: 1px solid #2a2a2a;
+            transition: all 0.2s ease;
+        }
+
+        .shop-item:hover {
+            background: linear-gradient(180deg, #222, #1a1a1a);
+            border-color: #3a3a3a;
+            transform: translateX(5px);
+        }
+
+        .shop-item-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .shop-item-icon {
+            font-size: 32px;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(145deg, #252525, #1a1a1a);
+            border-radius: 10px;
+            border: 1px solid #333;
+        }
+
+        .shop-item-name {
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .shop-item-desc {
+            color: #666;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        .shop-item-price {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .price-tag {
+            color: #ffd700;
+            font-weight: 700;
+            font-size: 18px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .shop-btn {
+            padding: 10px 22px;
+            background: linear-gradient(180deg, #2d2d2d, #1f1f1f);
+            border: 1px solid #444;
+            color: #ccc;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+        }
+
+        .shop-btn:hover {
+            background: linear-gradient(180deg, #3a3a3a, #2a2a2a);
+            border-color: #555;
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .shop-btn:active {
+            transform: scale(0.97);
+        }
+
+        .shop-btn:disabled {
+            background: #1a1a1a;
+            border-color: #222;
+            color: #444;
+            cursor: not-allowed;
+        }
+
+        #shop-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: #555;
+            font-size: 20px;
+            cursor: pointer;
+            transition: color 0.2s;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        #shop-close:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .shop-footer {
+            background: #0d0d0d;
+            padding: 12px;
+            border-top: 1px solid #1a1a1a;
+        }
+
+        .shop-hint {
+            text-align: center;
+            color: #444;
+            font-size: 11px;
+            margin: 0;
+            letter-spacing: 1px;
+        }
+
+        /* ========== СООБЩЕНИЯ ========== */
+        #message {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            z-index: 150;
+            display: none;
+            font-size: 18px;
+        }
+
+        #message.visible {
+            display: block;
+            animation: fadeOut 2s forwards;
+        }
+
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            70% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* ========== ИГРА ОКОНЧЕНА ========== */
+        #gameOver {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 300;
+            color: white;
+        }
+
+        #gameOver.visible {
+            display: flex;
+        }
+
+        #gameOver h1 {
+            font-size: 64px;
+            color: #ff4444;
+            margin-bottom: 20px;
+        }
+
+        #gameOver p {
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+
+        #gameOver button {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #4a90d9, #357abd);
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Экран блокировки указателя -->
+    <div id="lockScreen">
+        <h1>🧟 ZOMBIE SHOOTER</h1>
+        <p>WASD/Стрелки - движение | Пробел - прыжок | ЛКМ - стрельба | B - магазин | V - камера</p>
+        <button id="startBtn">НАЧАТЬ ИГРУ</button>
+    </div>
+
+    <!-- Прицел -->
+    <div id="crosshair"></div>
+
+    <!-- Панель управления вверху -->
+    <div id="controlsPanel">
+        <span class="control-key">WASD</span> Движение
+        <span class="control-key">ЛКМ</span> Стрельба
+        <span class="control-key">1</span><span class="control-key">2</span> Оружие
+        <span class="control-key">B</span> Магазин
+        <span class="control-key">V</span> Камера
+    </div>
+
+    <!-- HUD -->
+    <div id="hud">
+        <div class="hud-item" id="coins">
+            <div class="hud-icon">🪙</div>
+            <span id="coinsValue">0</span>
+        </div>
+        <div class="hud-item" id="ammo">
+            <div class="hud-icon">🔫</div>
+            <span id="ammoValue">12/12</span>
+        </div>
+        <div class="hud-item" id="kills">
+            <div class="hud-icon">💀</div>
+            <span id="killsValue">0</span>
+        </div>
+        <!-- Здоровье и броня с полосками -->
+        <div class="hud-bar-container">
+            <div class="hud-bar" id="healthBar">
+                <div class="hud-bar-icon">❤️</div>
+                <div class="hud-bar-bg">
+                    <div class="hud-bar-fill health-fill" id="healthFill"></div>
+                </div>
+                <span class="hud-bar-text" id="healthValue">100</span>
+            </div>
+            <div class="hud-bar" id="armorBar" style="display: none;">
+                <div class="hud-bar-icon">🛡️</div>
+                <div class="hud-bar-bg">
+                    <div class="hud-bar-fill armor-fill" id="armorFill"></div>
+                </div>
+                <span class="hud-bar-text" id="armorValue">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Кнопка магазина -->
+    <button id="shopButton" onclick="toggleShop()">
+        🏪 Магазин <span class="key-hint">B</span>
+    </button>
+
+    <!-- Инвентарь -->
+    <div id="inventory">
+        <div class="inv-slot active" id="slot1" onclick="switchWeapon('pistol')">
+            <span class="slot-num">1</span>
+            <span class="item-icon">🔫</span>
+            <span>Пистолет</span>
+        </div>
+        <div class="inv-slot" id="slot2" onclick="switchWeapon('shotgun')">
+            <span class="slot-num">2</span>
+            <span class="item-icon" id="shotgunIcon" style="opacity: 0.3">💥</span>
+            <span id="shotgunName" style="opacity: 0.3">Дробовик</span>
+        </div>
+        <div class="inv-slot">
+            <span class="slot-num">3</span>
+        </div>
+        <div class="inv-slot">
+            <span class="slot-num">4</span>
+        </div>
+        <div class="inv-slot">
+            <span class="slot-num">5</span>
+        </div>
+    </div>
+
+    <!-- Магазин -->
+    <div id="shop">
+        <div class="shop-header">
+            <button id="shop-close">✕</button>
+            <h2>МАГАЗИН</h2>
+        </div>
+        <div class="shop-content">
+            <div class="shop-item" data-item="shotgun">
+                <div class="shop-item-info">
+                    <span class="shop-item-icon">🔫</span>
+                    <div>
+                        <div class="shop-item-name">Дробовик</div>
+                        <div class="shop-item-desc">Мощное оружие • 6 патронов • Клавиша 2</div>
+                    </div>
+                </div>
+                <div class="shop-item-price">
+                    <span class="price-tag">50 🪙</span>
+                    <button class="shop-btn" onclick="buyItem('shotgun')">Купить</button>
+                </div>
+            </div>
+            <div class="shop-item" data-item="armor1">
+                <div class="shop-item-info">
+                    <span class="shop-item-icon">👔</span>
+                    <div>
+                        <div class="shop-item-name">Камуфляж</div>
+                        <div class="shop-item-desc">Военная форма • +25 брони • +25 HP</div>
+                    </div>
+                </div>
+                <div class="shop-item-price">
+                    <span class="price-tag">50 🪙</span>
+                    <button class="shop-btn" onclick="buyItem('armor1')">Купить</button>
+                </div>
+            </div>
+            <div class="shop-item" data-item="armor2">
+                <div class="shop-item-info">
+                    <span class="shop-item-icon">🦺</span>
+                    <div>
+                        <div class="shop-item-name">Жилет</div>
+                        <div class="shop-item-desc">Разгрузка • +50 брони • +50 HP</div>
+                    </div>
+                </div>
+                <div class="shop-item-price">
+                    <span class="price-tag">100 🪙</span>
+                    <button class="shop-btn" onclick="buyItem('armor2')">Купить</button>
+                </div>
+            </div>
+            <div class="shop-item" data-item="armor3">
+                <div class="shop-item-info">
+                    <span class="shop-item-icon">🪖</span>
+                    <div>
+                        <div class="shop-item-name">Штурмовой комплект</div>
+                        <div class="shop-item-desc">Полная экипировка • +100 брони • +100 HP</div>
+                    </div>
+                </div>
+                <div class="shop-item-price">
+                    <span class="price-tag">500 🪙</span>
+                    <button class="shop-btn" onclick="buyItem('armor3')">Купить</button>
+                </div>
+            </div>
+            <div class="shop-item" data-item="ammo">
+                <div class="shop-item-info">
+                    <span class="shop-item-icon">🔹</span>
+                    <div>
+                        <div class="shop-item-name">Патроны (пистолет)</div>
+                        <div class="shop-item-desc">Перезарядка магазина • 12 шт</div>
+                    </div>
+                </div>
+                <div class="shop-item-price">
+                    <span class="price-tag">14 🪙</span>
+                    <button class="shop-btn" onclick="buyItem('ammo')">Купить</button>
+                </div>
+            </div>
+            <div class="shop-item" data-item="shotgunAmmo">
+                <div class="shop-item-info">
+                    <span class="shop-item-icon">🔸</span>
+                    <div>
+                        <div class="shop-item-name">Патроны (дробовик)</div>
+                        <div class="shop-item-desc">Перезарядка магазина • 6 шт</div>
+                    </div>
+                </div>
+                <div class="shop-item-price">
+                    <span class="price-tag">20 🪙</span>
+                    <button class="shop-btn" onclick="buyItem('shotgunAmmo')">Купить</button>
+                </div>
+            </div>
+        </div>
+        <div class="shop-footer">
+            <div class="shop-hint">B или ESC — закрыть</div>
+        </div>
+    </div>
+
+    <!-- Сообщение -->
+    <div id="message"></div>
+
+    <!-- Экран смерти -->
+    <div id="gameOver">
+        <h1>GAME OVER</h1>
+        <p>Убито зомби: <span id="finalKills">0</span></p>
+        <button onclick="restartGame()">ИГРАТЬ СНОВА</button>
+    </div>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
+        let scene, camera, renderer;
+        let player, playerBody = {};
+        let zombies = [];
+        let buildings = [];
+        let clock = new THREE.Clock();
+
+        // Состояние игры
+        let gameState = {
+            coins: 0,
+            ammo: 12,
+            maxAmmo: 12,
+            shotgunAmmo: 0,
+            maxShotgunAmmo: 6,
+            currentWeapon: 'pistol', // 'pistol' или 'shotgun'
+            hasShotgun: false,
+            kills: 0,
+            health: 100,
+            maxHealth: 100,
+            armorHealth: 0,      // Текущее здоровье брони
+            maxArmorHealth: 0,   // Максимальное здоровье брони
+            armorType: 0,        // 0 - нет, 1 - обычная, 2 - средняя, 3 - тяжёлая
+            isPlaying: false,
+            shopOpen: false
+        };
+
+        // Массив для кусков мяса и крови
+        let goreObjects = [];
+
+        // Управление (WASD + стрелки)
+        let keys = {
+            w: false, a: false, s: false, d: false, space: false,
+            arrowup: false, arrowdown: false, arrowleft: false, arrowright: false
+        };
+        let mouseX = 0, mouseY = 0;
+        let playerRotationY = 0;
+        let cameraPitch = 0;
+
+        // Режим камеры: 'third' - от третьего лица, 'first' - от первого лица
+        let cameraMode = 'third';
+
+        // Физика игрока
+        let playerVelocityY = 0;
+        let isGrounded = true;
+        const GRAVITY = -25;
+        const JUMP_FORCE = 10;
+        const PLAYER_SPEED = 8;
+        const PLAYER_HEIGHT = 2.5;
+
+        // Настройки зомби
+        const ZOMBIE_SPEED = 2;
+        const SPAWN_INTERVAL = 3000;
+        const ZOMBIE_DAMAGE = 10;
+
+        // ========== ИНИЦИАЛИЗАЦИЯ СЦЕНЫ ==========
+        function init() {
+            // Создание сцены
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB); // Небо
+            scene.fog = new THREE.Fog(0x87CEEB, 50, 150);
+
+            // Камера
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+            // Рендерер
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+            renderer.domElement.id = 'gameCanvas';
+
+            // Освещение
+            setupLighting();
+
+            // Земля
+            createGround();
+
+            // Здания и заграждения
+            createBuildings();
+
+            // Игрок
+            createPlayer();
+
+            // События
+            setupEventListeners();
+
+            // Запуск спавна зомби
+            setInterval(spawnZombie, SPAWN_INTERVAL);
+
+            // Анимация
+            animate();
+        }
+
+        // ========== ОСВЕЩЕНИЕ ==========
+        function setupLighting() {
+            // Солнечный свет
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+            sunLight.position.set(50, 100, 50);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 0.5;
+            sunLight.shadow.camera.far = 500;
+            sunLight.shadow.camera.left = -100;
+            sunLight.shadow.camera.right = 100;
+            sunLight.shadow.camera.top = 100;
+            sunLight.shadow.camera.bottom = -100;
+            scene.add(sunLight);
+
+            // Ambient свет
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+            scene.add(ambientLight);
+
+            // Hemisphere свет для более реалистичного освещения
+            const hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x556B2F, 0.3);
+            scene.add(hemiLight);
+        }
+
+        // ========== ЗЕМЛЯ ==========
+        function createGround() {
+            const groundGeometry = new THREE.PlaneGeometry(200, 200);
+            const groundMaterial = new THREE.MeshStandardMaterial({
+                color: 0x556B2F, // Тёмно-зелёный (хаки)
+                roughness: 0.8
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+        }
+
+        // ========== ЗДАНИЯ И ЗАГРАЖДЕНИЯ ==========
+        function createBuildings() {
+            const buildingMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 }); // Коричневый
+            const roofMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 });
+            const barrierMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
+
+            // Создание нескольких домов
+            const housePositions = [
+                { x: -30, z: -30 },
+                { x: 30, z: -20 },
+                { x: -25, z: 25 },
+                { x: 35, z: 35 },
+                { x: 0, z: -40 }
+            ];
+
+            housePositions.forEach(pos => {
+                createHouse(pos.x, pos.z, buildingMaterial, roofMaterial);
+            });
+
+            // Заграждения (стены)
+            const barrierPositions = [
+                { x: 10, z: 10, rotY: 0, width: 8 },
+                { x: -15, z: 5, rotY: Math.PI / 4, width: 6 },
+                { x: 20, z: -10, rotY: Math.PI / 2, width: 10 },
+                { x: -40, z: 0, rotY: 0, width: 12 },
+                { x: 45, z: 10, rotY: Math.PI / 3, width: 8 }
+            ];
+
+            barrierPositions.forEach(bar => {
+                createBarrier(bar.x, bar.z, bar.rotY, bar.width, barrierMaterial);
+            });
+        }
+
+        function createHouse(x, z, wallMat, roofMat) {
+            const houseGroup = new THREE.Group();
+
+            // Стены (куб)
+            const wallsGeo = new THREE.BoxGeometry(10, 6, 10);
+            const walls = new THREE.Mesh(wallsGeo, wallMat);
+            walls.position.y = 3;
+            walls.castShadow = true;
+            walls.receiveShadow = true;
+            houseGroup.add(walls);
+
+            // Крыша (пирамида из кубов)
+            const roofGeo = new THREE.BoxGeometry(12, 2, 12);
+            const roof = new THREE.Mesh(roofGeo, roofMat);
+            roof.position.y = 7;
+            roof.castShadow = true;
+            houseGroup.add(roof);
+
+            const roofTop = new THREE.BoxGeometry(8, 2, 8);
+            const roofT = new THREE.Mesh(roofTop, roofMat);
+            roofT.position.y = 9;
+            roofT.castShadow = true;
+            houseGroup.add(roofT);
+
+            houseGroup.position.set(x, 0, z);
+            scene.add(houseGroup);
+
+            // Добавляем в список зданий для коллизий
+            buildings.push({
+                minX: x - 6,
+                maxX: x + 6,
+                minZ: z - 6,
+                maxZ: z + 6
+            });
+        }
+
+        function createBarrier(x, z, rotY, width, mat) {
+            const barrierGeo = new THREE.BoxGeometry(width, 3, 1);
+            const barrier = new THREE.Mesh(barrierGeo, mat);
+            barrier.position.set(x, 1.5, z);
+            barrier.rotation.y = rotY;
+            barrier.castShadow = true;
+            barrier.receiveShadow = true;
+            scene.add(barrier);
+
+            // Расчёт точных границ AABB с учётом поворота
+            // Барьер имеет размеры: width по X, depth=1 по Z
+            const halfWidth = width / 2;
+            const halfDepth = 0.5; // глубина стены = 1, половина = 0.5
+            const cos = Math.abs(Math.cos(rotY));
+            const sin = Math.abs(Math.sin(rotY));
+
+            // Правильный расчёт AABB для повёрнутого прямоугольника
+            const extentX = halfWidth * cos + halfDepth * sin;
+            const extentZ = halfWidth * sin + halfDepth * cos;
+
+            buildings.push({
+                minX: x - extentX,
+                maxX: x + extentX,
+                minZ: z - extentZ,
+                maxZ: z + extentZ
+            });
+        }
+
+        // ========== КАМУФЛЯЖ ==========
+        // Цвета камуфляжа (лесной)
+        const camoColors = [0x4B5320, 0x3D4F2F, 0x2F4F2F, 0x556B2F, 0x6B4423, 0x8B7355];
+
+        // Создание камуфляжных пятен на меше
+        function createCamoPatches(width, height, depth, offsetY = 0) {
+            const camoGroup = new THREE.Group();
+            const patchCount = Math.floor((width * height) * 15);
+
+            for (let i = 0; i < patchCount; i++) {
+                const patchSize = 0.08 + Math.random() * 0.12;
+                const patchGeo = new THREE.BoxGeometry(patchSize, patchSize, 0.02);
+                const patchMat = new THREE.MeshStandardMaterial({
+                    color: camoColors[Math.floor(Math.random() * camoColors.length)]
+                });
+                const patch = new THREE.Mesh(patchGeo, patchMat);
+
+                // Случайная позиция на поверхности
+                const side = Math.floor(Math.random() * 4); // 4 стороны
+                switch(side) {
+                    case 0: // Передняя
+                        patch.position.set(
+                            (Math.random() - 0.5) * width * 0.9,
+                            (Math.random() - 0.5) * height * 0.9 + offsetY,
+                            -depth / 2 - 0.01
+                        );
+                        break;
+                    case 1: // Задняя
+                        patch.position.set(
+                            (Math.random() - 0.5) * width * 0.9,
+                            (Math.random() - 0.5) * height * 0.9 + offsetY,
+                            depth / 2 + 0.01
+                        );
+                        patch.rotation.y = Math.PI;
+                        break;
+                    case 2: // Левая
+                        patch.position.set(
+                            -width / 2 - 0.01,
+                            (Math.random() - 0.5) * height * 0.9 + offsetY,
+                            (Math.random() - 0.5) * depth * 0.9
+                        );
+                        patch.rotation.y = Math.PI / 2;
+                        break;
+                    case 3: // Правая
+                        patch.position.set(
+                            width / 2 + 0.01,
+                            (Math.random() - 0.5) * height * 0.9 + offsetY,
+                            (Math.random() - 0.5) * depth * 0.9
+                        );
+                        patch.rotation.y = -Math.PI / 2;
+                        break;
+                }
+                camoGroup.add(patch);
+            }
+            return camoGroup;
+        }
+
+        // ========== ИГРОК (СТИЛЬ ROBLOX) ==========
+        function createPlayer() {
+            player = new THREE.Group();
+
+            // Цвета
+            const skinColor = 0xFFDBB4;
+            const shirtColor = 0x2E8B57;
+            const pantsColor = 0x1E3A5F;
+
+            // Позиции рассчитаны так, чтобы ноги касались земли (y=0)
+            // Левая нога
+            const legGeo = new THREE.BoxGeometry(0.5, 1, 0.5);
+            const legMat = new THREE.MeshStandardMaterial({ color: pantsColor });
+            playerBody.leftLeg = new THREE.Mesh(legGeo, legMat);
+            playerBody.leftLeg.position.set(-0.3, 0.5, 0); // центр ноги на 0.5
+            playerBody.leftLeg.castShadow = true;
+            player.add(playerBody.leftLeg);
+
+            // Правая нога
+            playerBody.rightLeg = new THREE.Mesh(legGeo, legMat);
+            playerBody.rightLeg.position.set(0.3, 0.5, 0);
+            playerBody.rightLeg.castShadow = true;
+            player.add(playerBody.rightLeg);
+
+            // Туловище (над ногами)
+            const torsoGeo = new THREE.BoxGeometry(1.2, 1.5, 0.6);
+            const torsoMat = new THREE.MeshStandardMaterial({ color: shirtColor });
+            playerBody.torso = new THREE.Mesh(torsoGeo, torsoMat);
+            playerBody.torso.position.y = 1.75; // 1 (верх ног) + 0.75 (половина туловища)
+            playerBody.torso.castShadow = true;
+            player.add(playerBody.torso);
+
+            // Бронежилет (изначально скрыт)
+            playerBody.vest = createVest();
+            playerBody.vest.position.y = 1.75;
+            playerBody.vest.visible = false;
+            player.add(playerBody.vest);
+
+            // Голова
+            const headGeo = new THREE.BoxGeometry(1, 1, 1);
+            const headMat = new THREE.MeshStandardMaterial({ color: skinColor });
+            playerBody.head = new THREE.Mesh(headGeo, headMat);
+            playerBody.head.position.y = 3;
+            playerBody.head.castShadow = true;
+            player.add(playerBody.head);
+
+            // Балаклава (скрыта по умолчанию) - закрывает лицо
+            playerBody.balaclava = createBalaclava();
+            playerBody.balaclava.position.y = 3;
+            playerBody.balaclava.visible = false;
+            player.add(playerBody.balaclava);
+
+            // Шлем (скрыт по умолчанию)
+            playerBody.helmet = createHelmet();
+            playerBody.helmet.position.y = 3.3;
+            playerBody.helmet.visible = false;
+            player.add(playerBody.helmet);
+
+            // Наколенники (скрыты по умолчанию)
+            playerBody.leftKneePad = createKneePad();
+            playerBody.leftKneePad.position.set(-0.3, 0.65, -0.28);
+            playerBody.leftKneePad.visible = false;
+            player.add(playerBody.leftKneePad);
+
+            playerBody.rightKneePad = createKneePad();
+            playerBody.rightKneePad.position.set(0.3, 0.65, -0.28);
+            playerBody.rightKneePad.visible = false;
+            player.add(playerBody.rightKneePad);
+
+            // Камуфляж для разных частей тела (скрыт по умолчанию)
+            playerBody.camouflage = new THREE.Group();
+
+            // Камуфляж на торс
+            const torsoCamo = createCamoPatches(1.2, 1.5, 0.6);
+            torsoCamo.position.y = 1.75;
+            playerBody.camouflage.add(torsoCamo);
+
+            // Камуфляж на левую ногу
+            const leftLegCamo = createCamoPatches(0.5, 1, 0.5);
+            leftLegCamo.position.set(-0.3, 0.5, 0);
+            playerBody.camouflage.add(leftLegCamo);
+
+            // Камуфляж на правую ногу
+            const rightLegCamo = createCamoPatches(0.5, 1, 0.5);
+            rightLegCamo.position.set(0.3, 0.5, 0);
+            playerBody.camouflage.add(rightLegCamo);
+
+            // Камуфляж на левую руку
+            const leftArmCamo = createCamoPatches(0.4, 1.2, 0.4);
+            leftArmCamo.position.set(-0.8, 1.75, 0);
+            playerBody.camouflage.add(leftArmCamo);
+
+            playerBody.camouflage.visible = false;
+            player.add(playerBody.camouflage);
+
+            // Лёгкий бронежилет/разгрузка (для средней брони)
+            playerBody.tacticalVest = createTacticalVest();
+            playerBody.tacticalVest.position.y = 1.75;
+            playerBody.tacticalVest.visible = false;
+            player.add(playerBody.tacticalVest);
+
+            // Тяжёлый бронежилет (для тяжёлой брони)
+            playerBody.heavyVest = createHeavyVest();
+            playerBody.heavyVest.position.y = 1.75;
+            playerBody.heavyVest.visible = false;
+            player.add(playerBody.heavyVest);
+
+            // Военный шлем (для тяжёлой брони)
+            playerBody.militaryHelmet = createMilitaryHelmet();
+            playerBody.militaryHelmet.position.y = 3.1;
+            playerBody.militaryHelmet.visible = false;
+            player.add(playerBody.militaryHelmet);
+
+            // Левая рука
+            const armGeo = new THREE.BoxGeometry(0.4, 1.2, 0.4);
+            const armMat = new THREE.MeshStandardMaterial({ color: skinColor });
+            playerBody.leftArm = new THREE.Mesh(armGeo, armMat);
+            playerBody.leftArm.position.set(-0.8, 1.75, 0);
+            playerBody.leftArm.castShadow = true;
+            player.add(playerBody.leftArm);
+
+            // Правая рука (с пистолетом) - вытянута ВПЕРЁД для прицеливания
+            const rightArmGroup = new THREE.Group();
+            rightArmGroup.position.set(0.7, 1.9, 0); // Позиция плеча
+            // Положительный угол X поворачивает руку ВПЕРЁД (к -Z)
+            rightArmGroup.rotation.x = Math.PI / 2.5; // Рука вперёд
+
+            playerBody.rightArm = new THREE.Mesh(armGeo, armMat);
+            playerBody.rightArm.position.set(0, -0.6, 0); // Рука от плеча
+            playerBody.rightArm.castShadow = true;
+            rightArmGroup.add(playerBody.rightArm);
+
+            // Пистолет в вытянутой руке - направлен ВПЕРЁД
+            playerBody.gun = createPistol();
+            playerBody.gun.position.set(0, -1.1, 0); // В конце руки
+            playerBody.gun.rotation.x = -Math.PI / 2.5; // Компенсируем поворот руки, пистолет смотрит вперёд
+            playerBody.gun.rotation.y = Math.PI; // Разворачиваем пистолет стволом вперёд
+            rightArmGroup.add(playerBody.gun);
+
+            player.add(rightArmGroup);
+            playerBody.rightArmGroup = rightArmGroup;
+
+            // Пистолет для вида от первого лица (отдельный, виден только в FPS)
+            playerBody.fpsGun = createPistol();
+            playerBody.fpsGun.scale.set(2, 2, 2); // Крупнее для FPS
+            playerBody.fpsGun.visible = false;
+            scene.add(playerBody.fpsGun);
+
+            // Дробовик (скрыт по умолчанию, пока не куплен)
+            playerBody.shotgun = createShotgun();
+            playerBody.shotgun.position.set(0, -1.1, 0);
+            playerBody.shotgun.rotation.x = -Math.PI / 2.5;
+            playerBody.shotgun.rotation.y = Math.PI;
+            playerBody.shotgun.scale.set(0.8, 0.8, 0.8);
+            playerBody.shotgun.visible = false;
+            playerBody.rightArmGroup.add(playerBody.shotgun);
+
+            // Дробовик для FPS
+            playerBody.fpsShotgun = createShotgun();
+            playerBody.fpsShotgun.scale.set(1.5, 1.5, 1.5);
+            playerBody.fpsShotgun.visible = false;
+            scene.add(playerBody.fpsShotgun);
+
+            player.position.set(0, 0, 0); // Игрок стоит на земле
+            scene.add(player);
+        }
+
+        // Переключение оружия
+        function switchWeapon(weapon) {
+            if (weapon === 'shotgun' && !gameState.hasShotgun) {
+                showMessage('У вас нет дробовика! Купите в магазине.');
+                return;
+            }
+
+            gameState.currentWeapon = weapon;
+
+            // Переключаем видимость оружия
+            if (weapon === 'pistol') {
+                playerBody.gun.visible = true;
+                playerBody.shotgun.visible = false;
+                showMessage('Пистолет (1)');
+                // Обновляем UI инвентаря
+                document.getElementById('slot1').classList.add('active');
+                document.getElementById('slot2').classList.remove('active');
+            } else if (weapon === 'shotgun') {
+                playerBody.gun.visible = false;
+                playerBody.shotgun.visible = true;
+                showMessage('Дробовик (2)');
+                // Обновляем UI инвентаря
+                document.getElementById('slot1').classList.remove('active');
+                document.getElementById('slot2').classList.add('active');
+            }
+
+            updateHUD();
+        }
+
+        // Обновление UI инвентаря при покупке дробовика
+        function updateShotgunUI() {
+            if (gameState.hasShotgun) {
+                document.getElementById('shotgunIcon').style.opacity = '1';
+                document.getElementById('shotgunName').style.opacity = '1';
+            } else {
+                document.getElementById('shotgunIcon').style.opacity = '0.3';
+                document.getElementById('shotgunName').style.opacity = '0.3';
+            }
+        }
+
+        // Создание бронежилета с надписью SWAT
+        function createVest() {
+            const vestGroup = new THREE.Group();
+
+            // Основа жилета (чуть больше туловища)
+            const vestGeo = new THREE.BoxGeometry(1.3, 1.4, 0.7);
+            const vestMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a });
+            const vest = new THREE.Mesh(vestGeo, vestMat);
+            vest.castShadow = true;
+            vestGroup.add(vest);
+
+            // Передние карманы
+            const pocketGeo = new THREE.BoxGeometry(0.3, 0.3, 0.1);
+            const pocketMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
+
+            const pocket1 = new THREE.Mesh(pocketGeo, pocketMat);
+            pocket1.position.set(-0.35, 0.2, -0.35);
+            vestGroup.add(pocket1);
+
+            const pocket2 = new THREE.Mesh(pocketGeo, pocketMat);
+            pocket2.position.set(0.35, 0.2, -0.35);
+            vestGroup.add(pocket2);
+
+            const pocket3 = new THREE.Mesh(pocketGeo, pocketMat);
+            pocket3.position.set(-0.35, -0.2, -0.35);
+            vestGroup.add(pocket3);
+
+            const pocket4 = new THREE.Mesh(pocketGeo, pocketMat);
+            pocket4.position.set(0.35, -0.2, -0.35);
+            vestGroup.add(pocket4);
+
+            // Надпись SWAT на спине (из маленьких кубиков)
+            const letterMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
+            const letterSize = 0.08;
+
+            // Буква S
+            createLetter_S(vestGroup, -0.4, 0.1, 0.36, letterSize, letterMat);
+            // Буква W
+            createLetter_W(vestGroup, -0.15, 0.1, 0.36, letterSize, letterMat);
+            // Буква A
+            createLetter_A(vestGroup, 0.15, 0.1, 0.36, letterSize, letterMat);
+            // Буква T
+            createLetter_T(vestGroup, 0.4, 0.1, 0.36, letterSize, letterMat);
+
+            return vestGroup;
+        }
+
+        // Создание балаклавы (маска на лицо)
+        function createBalaclava() {
+            const balaclavaGroup = new THREE.Group();
+            const balaclavaMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
+
+            // Основа балаклавы (покрывает голову)
+            const baseGeo = new THREE.BoxGeometry(1.05, 1.05, 1.05);
+            const base = new THREE.Mesh(baseGeo, balaclavaMat);
+            base.castShadow = true;
+            balaclavaGroup.add(base);
+
+            // Вырез для глаз (светлая полоса)
+            const eyeSlotGeo = new THREE.BoxGeometry(0.8, 0.2, 0.1);
+            const eyeSlotMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            const eyeSlot = new THREE.Mesh(eyeSlotGeo, eyeSlotMat);
+            eyeSlot.position.set(0, 0.15, -0.53);
+            balaclavaGroup.add(eyeSlot);
+
+            return balaclavaGroup;
+        }
+
+        // Создание шлема
+        function createHelmet() {
+            const helmetGroup = new THREE.Group();
+            const helmetMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a });
+
+            // Основа шлема (полусфера из кубов)
+            const helmetBase = new THREE.BoxGeometry(1.15, 0.5, 1.15);
+            const base = new THREE.Mesh(helmetBase, helmetMat);
+            base.castShadow = true;
+            helmetGroup.add(base);
+
+            // Верхняя часть шлема
+            const topGeo = new THREE.BoxGeometry(1.0, 0.3, 1.0);
+            const top = new THREE.Mesh(topGeo, helmetMat);
+            top.position.y = 0.35;
+            top.castShadow = true;
+            helmetGroup.add(top);
+
+            // Козырёк
+            const visorGeo = new THREE.BoxGeometry(1.1, 0.1, 0.3);
+            const visorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
+            const visor = new THREE.Mesh(visorGeo, visorMat);
+            visor.position.set(0, -0.1, -0.55);
+            visor.rotation.x = -0.2;
+            visor.castShadow = true;
+            helmetGroup.add(visor);
+
+            // Крепления по бокам
+            const sideMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a });
+            const sideGeo = new THREE.BoxGeometry(0.15, 0.3, 0.4);
+
+            const leftSide = new THREE.Mesh(sideGeo, sideMat);
+            leftSide.position.set(-0.6, -0.1, 0);
+            helmetGroup.add(leftSide);
+
+            const rightSide = new THREE.Mesh(sideGeo, sideMat);
+            rightSide.position.set(0.6, -0.1, 0);
+            helmetGroup.add(rightSide);
+
+            return helmetGroup;
+        }
+
+        // Создание наколенника
+        function createKneePad() {
+            const kneePadGroup = new THREE.Group();
+            const kneePadMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a });
+
+            // Основа наколенника
+            const padGeo = new THREE.BoxGeometry(0.35, 0.4, 0.15);
+            const pad = new THREE.Mesh(padGeo, kneePadMat);
+            pad.castShadow = true;
+            kneePadGroup.add(pad);
+
+            // Усиление (выпуклость)
+            const reinforceGeo = new THREE.BoxGeometry(0.25, 0.25, 0.08);
+            const reinforceMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a });
+            const reinforce = new THREE.Mesh(reinforceGeo, reinforceMat);
+            reinforce.position.z = -0.1;
+            kneePadGroup.add(reinforce);
+
+            return kneePadGroup;
+        }
+
+        // Создание тактического жилета/разгрузки (для средней брони)
+        function createTacticalVest() {
+            const vestGroup = new THREE.Group();
+            const vestMat = new THREE.MeshStandardMaterial({ color: 0x2F4F2F }); // Тёмно-зелёный
+
+            // Основа разгрузки (плоский блок поверх торса)
+            const vestGeo = new THREE.BoxGeometry(1.25, 1.3, 0.65);
+            const vest = new THREE.Mesh(vestGeo, vestMat);
+            vest.castShadow = true;
+            vestGroup.add(vest);
+
+            // Подсумки спереди (для магазинов)
+            const pouchMat = new THREE.MeshStandardMaterial({ color: 0x3D4F2F });
+            const pouchGeo = new THREE.BoxGeometry(0.25, 0.35, 0.12);
+
+            for (let i = 0; i < 3; i++) {
+                const pouch = new THREE.Mesh(pouchGeo, pouchMat);
+                pouch.position.set(-0.3 + i * 0.3, -0.25, -0.38);
+                pouch.castShadow = true;
+                vestGroup.add(pouch);
+            }
+
+            // Лямки на плечах
+            const strapMat = new THREE.MeshStandardMaterial({ color: 0x4B5320 });
+            const strapGeo = new THREE.BoxGeometry(0.15, 0.4, 0.6);
+
+            const leftStrap = new THREE.Mesh(strapGeo, strapMat);
+            leftStrap.position.set(-0.45, 0.55, 0);
+            vestGroup.add(leftStrap);
+
+            const rightStrap = new THREE.Mesh(strapGeo, strapMat);
+            rightStrap.position.set(0.45, 0.55, 0);
+            vestGroup.add(rightStrap);
+
+            return vestGroup;
+        }
+
+        // Создание тяжёлого бронежилета (для тяжёлой брони)
+        function createHeavyVest() {
+            const vestGroup = new THREE.Group();
+            const vestMat = new THREE.MeshStandardMaterial({ color: 0x2F4F2F });
+
+            // Основа тяжёлого бронежилета (больше и толще)
+            const vestGeo = new THREE.BoxGeometry(1.35, 1.45, 0.75);
+            const vest = new THREE.Mesh(vestGeo, vestMat);
+            vest.castShadow = true;
+            vestGroup.add(vest);
+
+            // Бронепластины спереди
+            const plateMat = new THREE.MeshStandardMaterial({ color: 0x1a3a1a });
+            const frontPlateGeo = new THREE.BoxGeometry(0.8, 0.9, 0.1);
+            const frontPlate = new THREE.Mesh(frontPlateGeo, plateMat);
+            frontPlate.position.set(0, 0.1, -0.42);
+            frontPlate.castShadow = true;
+            vestGroup.add(frontPlate);
+
+            // Бронепластина сзади
+            const backPlate = new THREE.Mesh(frontPlateGeo, plateMat);
+            backPlate.position.set(0, 0.1, 0.42);
+            backPlate.castShadow = true;
+            vestGroup.add(backPlate);
+
+            // Подсумки (больше чем у разгрузки)
+            const pouchMat = new THREE.MeshStandardMaterial({ color: 0x3D4F2F });
+            const pouchGeo = new THREE.BoxGeometry(0.28, 0.4, 0.15);
+
+            for (let i = 0; i < 3; i++) {
+                const pouch = new THREE.Mesh(pouchGeo, pouchMat);
+                pouch.position.set(-0.35 + i * 0.35, -0.35, -0.44);
+                pouch.castShadow = true;
+                vestGroup.add(pouch);
+            }
+
+            // Боковые защитные панели
+            const sideMat = new THREE.MeshStandardMaterial({ color: 0x2a4a2a });
+            const sideGeo = new THREE.BoxGeometry(0.12, 1.0, 0.5);
+
+            const leftSide = new THREE.Mesh(sideGeo, sideMat);
+            leftSide.position.set(-0.72, 0, 0);
+            vestGroup.add(leftSide);
+
+            const rightSide = new THREE.Mesh(sideGeo, sideMat);
+            rightSide.position.set(0.72, 0, 0);
+            vestGroup.add(rightSide);
+
+            // Воротник (защита шеи)
+            const collarMat = new THREE.MeshStandardMaterial({ color: 0x3a5a3a });
+            const collarGeo = new THREE.BoxGeometry(1.0, 0.25, 0.6);
+            const collar = new THREE.Mesh(collarGeo, collarMat);
+            collar.position.set(0, 0.75, 0.05);
+            vestGroup.add(collar);
+
+            return vestGroup;
+        }
+
+        // Создание военного шлема (для тяжёлой брони)
+        function createMilitaryHelmet() {
+            const helmetGroup = new THREE.Group();
+            const helmetMat = new THREE.MeshStandardMaterial({ color: 0x2F4F2F }); // Тёмно-зелёный
+
+            // Основа шлема (каска)
+            const baseGeo = new THREE.BoxGeometry(1.1, 0.6, 1.1);
+            const base = new THREE.Mesh(baseGeo, helmetMat);
+            base.castShadow = true;
+            helmetGroup.add(base);
+
+            // Верхняя часть (скруглённая из кубов)
+            const topGeo = new THREE.BoxGeometry(0.95, 0.3, 0.95);
+            const top = new THREE.Mesh(topGeo, helmetMat);
+            top.position.y = 0.4;
+            top.castShadow = true;
+            helmetGroup.add(top);
+
+            // Козырёк
+            const visorMat = new THREE.MeshStandardMaterial({ color: 0x1a3a1a });
+            const visorGeo = new THREE.BoxGeometry(1.0, 0.1, 0.25);
+            const visor = new THREE.Mesh(visorGeo, visorMat);
+            visor.position.set(0, -0.15, -0.6);
+            visor.rotation.x = -0.15;
+            visor.castShadow = true;
+            helmetGroup.add(visor);
+
+            // Крепление для очков/прибора ночного видения
+            const mountMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
+            const mountGeo = new THREE.BoxGeometry(0.3, 0.15, 0.15);
+            const mount = new THREE.Mesh(mountGeo, mountMat);
+            mount.position.set(0, 0.1, -0.6);
+            helmetGroup.add(mount);
+
+            // Боковые рельсы (для аксессуаров)
+            const railMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a });
+            const railGeo = new THREE.BoxGeometry(0.08, 0.12, 0.6);
+
+            const leftRail = new THREE.Mesh(railGeo, railMat);
+            leftRail.position.set(-0.58, 0, 0);
+            helmetGroup.add(leftRail);
+
+            const rightRail = new THREE.Mesh(railGeo, railMat);
+            rightRail.position.set(0.58, 0, 0);
+            helmetGroup.add(rightRail);
+
+            // Камуфляжные пятна на шлеме
+            const camoPatchCount = 8;
+            for (let i = 0; i < camoPatchCount; i++) {
+                const patchSize = 0.1 + Math.random() * 0.15;
+                const patchGeo = new THREE.BoxGeometry(patchSize, patchSize, 0.02);
+                const patchMat = new THREE.MeshStandardMaterial({
+                    color: camoColors[Math.floor(Math.random() * camoColors.length)]
+                });
+                const patch = new THREE.Mesh(patchGeo, patchMat);
+
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 0.4 + Math.random() * 0.15;
+                patch.position.set(
+                    Math.cos(angle) * radius * 0.8,
+                    0.2 + Math.random() * 0.3,
+                    Math.sin(angle) * radius * 0.8
+                );
+                patch.lookAt(0, patch.position.y, 0);
+                helmetGroup.add(patch);
+            }
+
+            return helmetGroup;
+        }
+
+        // Создание пистолета (крупный и видимый)
+        function createPistol() {
+            const gunGroup = new THREE.Group();
+
+            // Материалы
+            const gunMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const metalMat = new THREE.MeshStandardMaterial({ color: 0x444444 });
+
+            // Ствол (основная часть)
+            const barrelGeo = new THREE.BoxGeometry(0.12, 0.15, 0.5);
+            const barrel = new THREE.Mesh(barrelGeo, gunMat);
+            barrel.position.z = 0.1;
+            barrel.castShadow = true;
+            gunGroup.add(barrel);
+
+            // Затвор (верхняя часть)
+            const slideGeo = new THREE.BoxGeometry(0.14, 0.1, 0.45);
+            const slide = new THREE.Mesh(slideGeo, metalMat);
+            slide.position.set(0, 0.1, 0.08);
+            slide.castShadow = true;
+            gunGroup.add(slide);
+
+            // Рукоятка
+            const gripGeo = new THREE.BoxGeometry(0.1, 0.35, 0.18);
+            const grip = new THREE.Mesh(gripGeo, gunMat);
+            grip.position.set(0, -0.15, -0.12);
+            grip.rotation.x = 0.2;
+            grip.castShadow = true;
+            gunGroup.add(grip);
+
+            // Спусковая скоба
+            const triggerGuardGeo = new THREE.BoxGeometry(0.08, 0.12, 0.1);
+            const triggerGuard = new THREE.Mesh(triggerGuardGeo, metalMat);
+            triggerGuard.position.set(0, -0.08, 0.02);
+            gunGroup.add(triggerGuard);
+
+            // Мушка (прицел спереди)
+            const frontSightGeo = new THREE.BoxGeometry(0.04, 0.06, 0.04);
+            const frontSight = new THREE.Mesh(frontSightGeo, metalMat);
+            frontSight.position.set(0, 0.18, 0.3);
+            gunGroup.add(frontSight);
+
+            // Целик (прицел сзади)
+            const rearSightGeo = new THREE.BoxGeometry(0.1, 0.05, 0.04);
+            const rearSight = new THREE.Mesh(rearSightGeo, metalMat);
+            rearSight.position.set(0, 0.17, -0.12);
+            gunGroup.add(rearSight);
+
+            return gunGroup;
+        }
+
+        // Создание дробовика
+        function createShotgun() {
+            const gunGroup = new THREE.Group();
+
+            // Материалы
+            const metalMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c4033 });
+            const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
+
+            // Длинный ствол
+            const barrelGeo = new THREE.BoxGeometry(0.12, 0.12, 1.0);
+            const barrel = new THREE.Mesh(barrelGeo, metalMat);
+            barrel.position.z = 0.3;
+            barrel.castShadow = true;
+            gunGroup.add(barrel);
+
+            // Подствольный магазин
+            const magTubeGeo = new THREE.BoxGeometry(0.1, 0.1, 0.7);
+            const magTube = new THREE.Mesh(magTubeGeo, metalMat);
+            magTube.position.set(0, -0.1, 0.15);
+            magTube.castShadow = true;
+            gunGroup.add(magTube);
+
+            // Ствольная коробка
+            const receiverGeo = new THREE.BoxGeometry(0.15, 0.18, 0.35);
+            const receiver = new THREE.Mesh(receiverGeo, darkMetalMat);
+            receiver.position.set(0, 0, -0.15);
+            receiver.castShadow = true;
+            gunGroup.add(receiver);
+
+            // Деревянный приклад
+            const stockGeo = new THREE.BoxGeometry(0.12, 0.15, 0.45);
+            const stock = new THREE.Mesh(stockGeo, woodMat);
+            stock.position.set(0, -0.02, -0.5);
+            stock.castShadow = true;
+            gunGroup.add(stock);
+
+            // Затыльник приклада
+            const buttpadGeo = new THREE.BoxGeometry(0.14, 0.18, 0.05);
+            const buttpad = new THREE.Mesh(buttpadGeo, darkMetalMat);
+            buttpad.position.set(0, -0.02, -0.74);
+            gunGroup.add(buttpad);
+
+            // Цевьё (помповый механизм)
+            const foreendGeo = new THREE.BoxGeometry(0.14, 0.14, 0.25);
+            const foreend = new THREE.Mesh(foreendGeo, woodMat);
+            foreend.position.set(0, -0.05, 0.25);
+            foreend.castShadow = true;
+            gunGroup.add(foreend);
+
+            // Рукоятка
+            const gripGeo = new THREE.BoxGeometry(0.1, 0.25, 0.12);
+            const grip = new THREE.Mesh(gripGeo, woodMat);
+            grip.position.set(0, -0.18, -0.22);
+            grip.rotation.x = 0.3;
+            grip.castShadow = true;
+            gunGroup.add(grip);
+
+            // Спусковая скоба
+            const triggerGuardGeo = new THREE.BoxGeometry(0.08, 0.08, 0.12);
+            const triggerGuard = new THREE.Mesh(triggerGuardGeo, metalMat);
+            triggerGuard.position.set(0, -0.12, -0.12);
+            gunGroup.add(triggerGuard);
+
+            // Мушка
+            const frontSightGeo = new THREE.BoxGeometry(0.04, 0.08, 0.04);
+            const frontSight = new THREE.Mesh(frontSightGeo, metalMat);
+            frontSight.position.set(0, 0.12, 0.75);
+            gunGroup.add(frontSight);
+
+            return gunGroup;
+        }
+
+        // Функции для создания букв из кубиков
+        function createLetter_S(group, x, y, z, size, mat) {
+            const positions = [
+                [0, 2], [1, 2], [2, 2],
+                [0, 1],
+                [0, 0], [1, 0], [2, 0],
+                        [2, -1],
+                [0, -2], [1, -2], [2, -2]
+            ];
+            positions.forEach(p => {
+                const cube = new THREE.Mesh(new THREE.BoxGeometry(size, size, size * 0.5), mat);
+                cube.position.set(x + p[0] * size, y + p[1] * size, z);
+                group.add(cube);
+            });
+        }
+
+        function createLetter_W(group, x, y, z, size, mat) {
+            const positions = [
+                [0, 2], [0, 1], [0, 0], [0, -1], [0, -2],
+                [1, -1],
+                [2, 0], [2, -1],
+                [3, -1],
+                [4, 2], [4, 1], [4, 0], [4, -1], [4, -2]
+            ];
+            positions.forEach(p => {
+                const cube = new THREE.Mesh(new THREE.BoxGeometry(size, size, size * 0.5), mat);
+                cube.position.set(x + p[0] * size * 0.6, y + p[1] * size, z);
+                group.add(cube);
+            });
+        }
+
+        function createLetter_A(group, x, y, z, size, mat) {
+            const positions = [
+                [1, 2],
+                [0, 1], [2, 1],
+                [0, 0], [1, 0], [2, 0],
+                [0, -1], [2, -1],
+                [0, -2], [2, -2]
+            ];
+            positions.forEach(p => {
+                const cube = new THREE.Mesh(new THREE.BoxGeometry(size, size, size * 0.5), mat);
+                cube.position.set(x + p[0] * size, y + p[1] * size, z);
+                group.add(cube);
+            });
+        }
+
+        function createLetter_T(group, x, y, z, size, mat) {
+            const positions = [
+                [0, 2], [1, 2], [2, 2],
+                [1, 1], [1, 0], [1, -1], [1, -2]
+            ];
+            positions.forEach(p => {
+                const cube = new THREE.Mesh(new THREE.BoxGeometry(size, size, size * 0.5), mat);
+                cube.position.set(x + p[0] * size, y + p[1] * size, z);
+                group.add(cube);
+            });
+        }
+
+        // ========== ЗОМБИ ==========
+        function createZombie() {
+            const zombie = new THREE.Group();
+            zombie.userData = { health: 100 };
+
+            const zombieColor = 0x355E3B;
+            const clothesColor = 0x4A4A4A;
+
+            // Позиции рассчитаны так, чтобы ноги касались земли (y=0)
+            // Ноги
+            const legGeo = new THREE.BoxGeometry(0.45, 0.9, 0.45);
+            const legMat = new THREE.MeshStandardMaterial({ color: 0x2F2F2F });
+
+            const leftLeg = new THREE.Mesh(legGeo, legMat);
+            leftLeg.position.set(-0.28, 0.45, 0);
+            leftLeg.castShadow = true;
+            zombie.add(leftLeg);
+
+            const rightLeg = new THREE.Mesh(legGeo, legMat);
+            rightLeg.position.set(0.28, 0.45, 0);
+            rightLeg.castShadow = true;
+            zombie.add(rightLeg);
+
+            // Туловище
+            const torsoGeo = new THREE.BoxGeometry(1.1, 1.4, 0.5);
+            const torsoMat = new THREE.MeshStandardMaterial({ color: clothesColor });
+            const torso = new THREE.Mesh(torsoGeo, torsoMat);
+            torso.position.y = 1.6;
+            torso.castShadow = true;
+            zombie.add(torso);
+
+            // Голова
+            const headGeo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+            const headMat = new THREE.MeshStandardMaterial({ color: zombieColor });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 2.75;
+            head.castShadow = true;
+            zombie.add(head);
+
+            // Руки с правильным креплением к плечам (используем группы для поворота)
+            const armGeo = new THREE.BoxGeometry(0.35, 1.0, 0.35);
+            const armMat = new THREE.MeshStandardMaterial({ color: zombieColor });
+
+            // Левая рука - группа для правильного поворота от плеча
+            const leftArmGroup = new THREE.Group();
+            leftArmGroup.position.set(-0.72, 2.1, 0); // Позиция плеча
+            const leftArm = new THREE.Mesh(armGeo, armMat);
+            leftArm.position.set(0, -0.5, 0); // Смещение вниз от точки поворота
+            leftArm.castShadow = true;
+            leftArmGroup.add(leftArm);
+            leftArmGroup.rotation.x = -1.3; // Руки вытянуты вперёд
+            zombie.add(leftArmGroup);
+
+            // Правая рука
+            const rightArmGroup = new THREE.Group();
+            rightArmGroup.position.set(0.72, 2.1, 0);
+            const rightArm = new THREE.Mesh(armGeo, armMat);
+            rightArm.position.set(0, -0.5, 0);
+            rightArm.castShadow = true;
+            rightArmGroup.add(rightArm);
+            rightArmGroup.rotation.x = -1.3;
+            zombie.add(rightArmGroup);
+
+            return zombie;
+        }
+
+        function spawnZombie() {
+            if (!gameState.isPlaying) return;
+
+            const zombie = createZombie();
+
+            // Спавн в случайном месте на краю карты
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 60 + Math.random() * 20;
+            zombie.position.x = Math.cos(angle) * distance;
+            zombie.position.z = Math.sin(angle) * distance;
+            zombie.position.y = 0; // Зомби стоит на земле
+
+            scene.add(zombie);
+            zombies.push(zombie);
+        }
+
+        function updateZombies(delta) {
+            const playerPos = player.position.clone();
+
+            zombies.forEach((zombie, index) => {
+                if (!zombie.userData.health || zombie.userData.health <= 0) return;
+
+                // Направление к игроку
+                const direction = new THREE.Vector3();
+                direction.subVectors(playerPos, zombie.position);
+                direction.y = 0;
+                direction.normalize();
+
+                // Движение к игроку
+                const newX = zombie.position.x + direction.x * ZOMBIE_SPEED * delta;
+                const newZ = zombie.position.z + direction.z * ZOMBIE_SPEED * delta;
+
+                // Проверка коллизий
+                if (!checkCollision(newX, newZ, 0.5)) {
+                    zombie.position.x = newX;
+                    zombie.position.z = newZ;
+                }
+
+                // Поворот к игроку
+                zombie.lookAt(playerPos.x, zombie.position.y, playerPos.z);
+
+                // Анимация ходьбы
+                const time = Date.now() * 0.005;
+                zombie.children.forEach((part, i) => {
+                    if (i >= 4) { // Ноги
+                        part.rotation.x = Math.sin(time + i) * 0.3;
+                    }
+                });
+
+                // Атака игрока
+                const dist = zombie.position.distanceTo(playerPos);
+                if (dist < 2) {
+                    attackPlayer(zombie);
+                }
+            });
+        }
+
+        function attackPlayer(zombie) {
+            if (!zombie.userData.lastAttack || Date.now() - zombie.userData.lastAttack > 1000) {
+                zombie.userData.lastAttack = Date.now();
+
+                let damage = ZOMBIE_DAMAGE;
+
+                // Сначала урон идёт по броне
+                if (gameState.armorHealth > 0) {
+                    gameState.armorHealth -= damage;
+
+                    // Если броня сломалась
+                    if (gameState.armorHealth <= 0) {
+                        // Остаток урона идёт по здоровью
+                        const remainingDamage = Math.abs(gameState.armorHealth);
+                        gameState.armorHealth = 0;
+                        gameState.maxArmorHealth = 0;
+                        gameState.armorType = 0;
+
+                        // Сброс бонуса здоровья от брони
+                        gameState.maxHealth = 100;
+                        if (gameState.health > gameState.maxHealth) {
+                            gameState.health = gameState.maxHealth;
+                        }
+
+                        // Скрываем всю экипировку брони
+                        hideAllArmorGear();
+                        showMessage('Броня уничтожена!');
+
+                        // Наносим остаток урона по здоровью
+                        gameState.health -= remainingDamage;
+                    }
+                } else {
+                    // Если брони нет, урон идёт по здоровью
+                    gameState.health -= damage;
+                }
+
+                updateHUD();
+
+                if (gameState.health <= 0) {
+                    gameOver();
+                }
+            }
+        }
+
+        // ========== СТРЕЛЬБА ==========
+        function shoot() {
+            if (gameState.shopOpen) return;
+
+            // Проверка патронов для текущего оружия
+            if (gameState.currentWeapon === 'pistol') {
+                if (gameState.ammo <= 0) {
+                    showMessage('Нет патронов для пистолета!');
+                    return;
+                }
+                gameState.ammo--;
+            } else if (gameState.currentWeapon === 'shotgun') {
+                if (gameState.shotgunAmmo <= 0) {
+                    showMessage('Нет патронов для дробовика!');
+                    return;
+                }
+                gameState.shotgunAmmo--;
+            }
+
+            updateHUD();
+
+            // Создание луча от камеры
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+
+            // Проверка попадания по зомби
+            const zombieMeshes = [];
+            zombies.forEach(zombie => {
+                zombie.traverse(child => {
+                    if (child.isMesh) {
+                        child.userData.parentZombie = zombie;
+                        // Определяем, это голова или нет (по позиции Y)
+                        const worldPos = new THREE.Vector3();
+                        child.getWorldPosition(worldPos);
+                        child.userData.isHead = (worldPos.y > zombie.position.y + 2.3);
+                        zombieMeshes.push(child);
+                    }
+                });
+            });
+
+            const intersects = raycaster.intersectObjects(zombieMeshes);
+
+            if (intersects.length > 0) {
+                const hitMesh = intersects[0].object;
+                const zombie = hitMesh.userData.parentZombie;
+                const hitPoint = intersects[0].point;
+
+                if (zombie && zombie.userData.health > 0) {
+                    // Определяем урон в зависимости от оружия
+                    let damage = gameState.currentWeapon === 'pistol' ? 50 : 100;
+
+                    // Проверка хедшота для дробовика
+                    const isHeadshot = hitPoint.y > zombie.position.y + 2.3;
+
+                    if (gameState.currentWeapon === 'shotgun' && isHeadshot) {
+                        // ХЕДШОТ ДРОБОВИКОМ - мгновенная смерть + взрыв головы
+                        zombie.userData.health = 0;
+                        createHeadExplosion(zombie, hitPoint);
+                        killZombieWithGore(zombie);
+                    } else {
+                        zombie.userData.health -= damage;
+                        createHitEffect(hitPoint);
+
+                        if (zombie.userData.health <= 0) {
+                            killZombie(zombie);
+                        }
+                    }
+                }
+            }
+
+            // Эффект выстрела (вспышка)
+            createMuzzleFlash();
+        }
+
+        // Взрыв головы зомби
+        function createHeadExplosion(zombie, hitPoint) {
+            const headPos = new THREE.Vector3(
+                zombie.position.x,
+                zombie.position.y + 2.75,
+                zombie.position.z
+            );
+
+            // Скрываем голову зомби
+            zombie.children.forEach(child => {
+                if (child.isMesh) {
+                    const worldPos = new THREE.Vector3();
+                    child.getWorldPosition(worldPos);
+                    if (worldPos.y > zombie.position.y + 2.3) {
+                        child.visible = false;
+                    }
+                }
+            });
+
+            // Создаём куски головы и мясо
+            const meatColors = [0x8B0000, 0xA52A2A, 0x800000, 0x654321, 0x355E3B];
+
+            for (let i = 0; i < 12; i++) {
+                const size = 0.1 + Math.random() * 0.2;
+                const geo = new THREE.BoxGeometry(size, size, size);
+                const mat = new THREE.MeshStandardMaterial({
+                    color: meatColors[Math.floor(Math.random() * meatColors.length)]
+                });
+                const chunk = new THREE.Mesh(geo, mat);
+
+                chunk.position.copy(headPos);
+
+                // Случайная скорость разлёта
+                chunk.userData.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 8,
+                    Math.random() * 5 + 2,
+                    (Math.random() - 0.5) * 8
+                );
+                chunk.userData.rotSpeed = new THREE.Vector3(
+                    Math.random() * 10,
+                    Math.random() * 10,
+                    Math.random() * 10
+                );
+                chunk.userData.lifetime = 5000; // 5 секунд
+                chunk.userData.birthTime = Date.now();
+
+                chunk.castShadow = true;
+                scene.add(chunk);
+                goreObjects.push(chunk);
+            }
+
+            // Кровавый эффект
+            createBloodSplatter(headPos);
+        }
+
+        // Кровавые брызги
+        function createBloodSplatter(position) {
+            for (let i = 0; i < 20; i++) {
+                const geo = new THREE.SphereGeometry(0.05 + Math.random() * 0.08, 6, 6);
+                const mat = new THREE.MeshStandardMaterial({ color: 0x8B0000 });
+                const blood = new THREE.Mesh(geo, mat);
+
+                blood.position.copy(position);
+                blood.userData.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 6,
+                    Math.random() * 4,
+                    (Math.random() - 0.5) * 6
+                );
+                blood.userData.lifetime = 3000;
+                blood.userData.birthTime = Date.now();
+
+                scene.add(blood);
+                goreObjects.push(blood);
+            }
+        }
+
+        // Обновление gore объектов (куски мяса падают)
+        function updateGore(delta) {
+            for (let i = goreObjects.length - 1; i >= 0; i--) {
+                const obj = goreObjects[i];
+
+                // Проверка времени жизни
+                if (Date.now() - obj.userData.birthTime > obj.userData.lifetime) {
+                    scene.remove(obj);
+                    goreObjects.splice(i, 1);
+                    continue;
+                }
+
+                // Гравитация
+                obj.userData.velocity.y -= 15 * delta;
+
+                // Движение
+                obj.position.x += obj.userData.velocity.x * delta;
+                obj.position.y += obj.userData.velocity.y * delta;
+                obj.position.z += obj.userData.velocity.z * delta;
+
+                // Вращение
+                if (obj.userData.rotSpeed) {
+                    obj.rotation.x += obj.userData.rotSpeed.x * delta;
+                    obj.rotation.y += obj.userData.rotSpeed.y * delta;
+                    obj.rotation.z += obj.userData.rotSpeed.z * delta;
+                }
+
+                // Остановка на земле
+                if (obj.position.y < 0.1) {
+                    obj.position.y = 0.1;
+                    obj.userData.velocity.x *= 0.8;
+                    obj.userData.velocity.z *= 0.8;
+                    obj.userData.velocity.y = 0;
+                    if (obj.userData.rotSpeed) {
+                        obj.userData.rotSpeed.multiplyScalar(0.9);
+                    }
+                }
+            }
+        }
+
+        function killZombie(zombie) {
+            gameState.coins += 50;
+            gameState.kills++;
+            updateHUD();
+            showMessage('+50 монет!');
+
+            // Помечаем зомби как мёртвого
+            zombie.userData.isDead = true;
+            zombie.userData.deathTime = Date.now();
+
+            // Убираем из массива активных зомби
+            const index = zombies.indexOf(zombie);
+            if (index > -1) {
+                zombies.splice(index, 1);
+            }
+
+            // Анимация падения - зомби падает на землю
+            zombieFallDown(zombie);
+        }
+
+        // Убийство зомби с gore эффектом (хедшот)
+        function killZombieWithGore(zombie) {
+            gameState.coins += 75; // Бонус за хедшот
+            gameState.kills++;
+            updateHUD();
+            showMessage('+75 монет! ХЕДШОТ!');
+
+            // Помечаем зомби как мёртвого
+            zombie.userData.isDead = true;
+            zombie.userData.deathTime = Date.now();
+
+            // Убираем из массива активных зомби
+            const index = zombies.indexOf(zombie);
+            if (index > -1) {
+                zombies.splice(index, 1);
+            }
+
+            // Анимация падения
+            zombieFallDown(zombie);
+        }
+
+        // Массив мёртвых зомби (тела)
+        let deadZombies = [];
+
+        // Анимация падения зомби
+        function zombieFallDown(zombie) {
+            // Наклоняем зомби (падает назад)
+            zombie.rotation.x = -Math.PI / 2;
+            zombie.position.y = 0.5;
+
+            // Добавляем в массив мёртвых тел
+            deadZombies.push(zombie);
+        }
+
+        // Обновление мёртвых зомби (удаление через 5 секунд)
+        function updateDeadZombies() {
+            for (let i = deadZombies.length - 1; i >= 0; i--) {
+                const zombie = deadZombies[i];
+
+                // Проверяем время смерти
+                if (Date.now() - zombie.userData.deathTime > 5000) {
+                    scene.remove(zombie);
+                    deadZombies.splice(i, 1);
+                }
+            }
+        }
+
+        function createHitEffect(position) {
+            const geo = new THREE.SphereGeometry(0.2, 8, 8);
+            const mat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const effect = new THREE.Mesh(geo, mat);
+            effect.position.copy(position);
+            scene.add(effect);
+
+            setTimeout(() => scene.remove(effect), 100);
+        }
+
+        function createMuzzleFlash() {
+            const flash = new THREE.PointLight(0xffaa00, 3, 5);
+            flash.position.copy(player.position);
+            flash.position.y += 1;
+            scene.add(flash);
+
+            setTimeout(() => scene.remove(flash), 50);
+        }
+
+        // ========== КОЛЛИЗИИ ==========
+        function checkCollision(x, z, radius = 0.6) {
+            for (const building of buildings) {
+                if (x + radius > building.minX &&
+                    x - radius < building.maxX &&
+                    z + radius > building.minZ &&
+                    z - radius < building.maxZ) {
+                    return true;
+                }
+            }
+
+            // Границы карты
+            if (Math.abs(x) > 95 || Math.abs(z) > 95) {
+                return true;
+            }
+
+            return false;
+        }
+
+        // ========== МАГАЗИН ==========
+        function buyItem(item) {
+            const prices = {
+                shotgun: 50,
+                armor1: 50,
+                armor2: 100,
+                armor3: 500,
+                ammo: 14,
+                shotgunAmmo: 20
+            };
+
+            if (gameState.coins < prices[item]) {
+                showMessage('Недостаточно монет!');
+                return;
+            }
+
+            gameState.coins -= prices[item];
+
+            switch(item) {
+                case 'shotgun':
+                    if (gameState.hasShotgun) {
+                        // Если уже есть - просто пополняем патроны
+                        gameState.shotgunAmmo = gameState.maxShotgunAmmo;
+                        showMessage('Патроны дробовика пополнены!');
+                    } else {
+                        gameState.hasShotgun = true;
+                        gameState.shotgunAmmo = gameState.maxShotgunAmmo;
+                        updateShotgunUI();
+                        showMessage('Дробовик куплен! Нажмите 2 для выбора');
+                    }
+                    break;
+                case 'armor1':
+                    // Скрываем старую экипировку только при покупке брони
+                    hideAllArmorGear();
+                    gameState.armorType = 1;
+                    gameState.armorHealth = 25;
+                    gameState.maxArmorHealth = 25;
+                    // Бонус к здоровью: +25 HP
+                    gameState.maxHealth = 125;
+                    gameState.health = Math.min(gameState.health + 25, gameState.maxHealth);
+                    // Показываем камуфляж на торсе, руках и ногах
+                    playerBody.camouflage.visible = true;
+                    showMessage('Камуфляж экипирован!');
+                    break;
+                case 'armor2':
+                    hideAllArmorGear();
+                    gameState.armorType = 2;
+                    gameState.armorHealth = 50;
+                    gameState.maxArmorHealth = 50;
+                    // Бонус к здоровью: +50 HP
+                    gameState.maxHealth = 150;
+                    gameState.health = Math.min(gameState.health + 50, gameState.maxHealth);
+                    // Камуфляж + тактический жилет (разгрузка)
+                    playerBody.camouflage.visible = true;
+                    playerBody.tacticalVest.visible = true;
+                    showMessage('Жилет экипирован!');
+                    break;
+                case 'armor3':
+                    hideAllArmorGear();
+                    gameState.armorType = 3;
+                    gameState.armorHealth = 100;
+                    gameState.maxArmorHealth = 100;
+                    // Бонус к здоровью: +100 HP
+                    gameState.maxHealth = 200;
+                    gameState.health = Math.min(gameState.health + 100, gameState.maxHealth);
+                    // Камуфляж + тяжёлый бронежилет + военный шлем
+                    playerBody.camouflage.visible = true;
+                    playerBody.heavyVest.visible = true;
+                    playerBody.militaryHelmet.visible = true;
+                    showMessage('Штурмовой комплект экипирован!');
+                    break;
+                case 'ammo':
+                    gameState.ammo = gameState.maxAmmo;
+                    showMessage('Патроны пистолета пополнены!');
+                    break;
+                case 'shotgunAmmo':
+                    if (!gameState.hasShotgun) {
+                        showMessage('Сначала купите дробовик!');
+                        gameState.coins += prices[item]; // Возврат монет
+                        return;
+                    }
+                    gameState.shotgunAmmo = gameState.maxShotgunAmmo;
+                    showMessage('Патроны дробовика пополнены!');
+                    break;
+            }
+
+            updateHUD();
+        }
+
+        // Установка цвета бронежилета
+        function setVestColor(color) {
+            playerBody.vest.children.forEach((child, index) => {
+                if (child.isMesh && index === 0) {
+                    // Основа жилета
+                    child.material.color.setHex(color);
+                } else if (child.isMesh && index >= 1 && index <= 4) {
+                    // Карманы (чуть темнее)
+                    child.material.color.setHex(color - 0x111111);
+                }
+            });
+        }
+
+        // Скрыть всю экипировку брони
+        function hideAllArmorGear() {
+            // Старая экипировка (SWAT)
+            playerBody.vest.visible = false;
+            playerBody.helmet.visible = false;
+            playerBody.balaclava.visible = false;
+            playerBody.leftKneePad.visible = false;
+            playerBody.rightKneePad.visible = false;
+            // Новая экипировка (военная)
+            playerBody.camouflage.visible = false;
+            playerBody.tacticalVest.visible = false;
+            playerBody.heavyVest.visible = false;
+            playerBody.militaryHelmet.visible = false;
+        }
+
+        // Для обратной совместимости
+        function hideHeavyArmorGear() {
+            hideAllArmorGear();
+        }
+
+        // Установка цвета экипировки тяжёлой брони
+        function setHeavyArmorColor(color) {
+            // Цвет шлема
+            playerBody.helmet.children.forEach((child, index) => {
+                if (child.isMesh && index <= 1) {
+                    child.material.color.setHex(color);
+                }
+            });
+            // Цвет наколенников
+            playerBody.leftKneePad.children[0].material.color.setHex(color);
+            playerBody.rightKneePad.children[0].material.color.setHex(color);
+        }
+
+        function toggleShop() {
+            gameState.shopOpen = !gameState.shopOpen;
+            document.getElementById('shop').classList.toggle('visible', gameState.shopOpen);
+        }
+
+        // ========== HUD ==========
+        function updateHUD() {
+            document.getElementById('coinsValue').textContent = gameState.coins;
+            document.getElementById('killsValue').textContent = gameState.kills;
+
+            // Отображение патронов текущего оружия
+            let ammoText = '';
+            if (gameState.currentWeapon === 'pistol') {
+                ammoText = `🔫 ${gameState.ammo}/${gameState.maxAmmo}`;
+            } else if (gameState.currentWeapon === 'shotgun') {
+                ammoText = `💥 ${gameState.shotgunAmmo}/${gameState.maxShotgunAmmo}`;
+            }
+            document.getElementById('ammoValue').textContent = ammoText;
+
+            // Обновление полоски здоровья
+            const healthPercent = (gameState.health / gameState.maxHealth) * 100;
+            document.getElementById('healthFill').style.width = Math.max(0, healthPercent) + '%';
+            document.getElementById('healthValue').textContent = Math.max(0, Math.round(gameState.health));
+
+            // Обновление полоски брони
+            const armorBar = document.getElementById('armorBar');
+            if (gameState.armorHealth > 0) {
+                armorBar.style.display = 'flex';
+                const armorPercent = (gameState.armorHealth / gameState.maxArmorHealth) * 100;
+                document.getElementById('armorFill').style.width = armorPercent + '%';
+                document.getElementById('armorValue').textContent = Math.round(gameState.armorHealth);
+            } else {
+                armorBar.style.display = 'none';
+            }
+        }
+
+        function showMessage(text) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.classList.remove('visible');
+            void msg.offsetWidth; // Trigger reflow
+            msg.classList.add('visible');
+        }
+
+        // ========== СОБЫТИЯ ==========
+        function setupEventListeners() {
+            // Блокировка указателя
+            document.getElementById('startBtn').addEventListener('click', () => {
+                document.body.requestPointerLock();
+            });
+
+            document.addEventListener('pointerlockchange', () => {
+                if (document.pointerLockElement) {
+                    document.getElementById('lockScreen').style.display = 'none';
+                    gameState.isPlaying = true;
+                } else {
+                    if (!gameState.shopOpen && gameState.health > 0) {
+                        document.getElementById('lockScreen').style.display = 'flex';
+                    }
+                    gameState.isPlaying = false;
+                }
+            });
+
+            // Движение мыши
+            document.addEventListener('mousemove', (e) => {
+                if (!document.pointerLockElement || gameState.shopOpen) return;
+
+                playerRotationY -= e.movementX * 0.002;
+                cameraPitch -= e.movementY * 0.002;
+                cameraPitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, cameraPitch));
+            });
+
+            // Клавиши (WASD + стрелки)
+            document.addEventListener('keydown', (e) => {
+                const key = e.key.toLowerCase();
+                if (key in keys) keys[key] = true;
+                if (key === ' ') {
+                    keys.space = true;
+                    e.preventDefault();
+                }
+                // Стрелки
+                if (e.key === 'ArrowUp') { keys.arrowup = true; e.preventDefault(); }
+                if (e.key === 'ArrowDown') { keys.arrowdown = true; e.preventDefault(); }
+                if (e.key === 'ArrowLeft') { keys.arrowleft = true; e.preventDefault(); }
+                if (e.key === 'ArrowRight') { keys.arrowright = true; e.preventDefault(); }
+
+                if (key === 'b') {
+                    toggleShop();
+                }
+                // Переключение камеры (V) - только когда игра запущена
+                if (key === 'v' && gameState.isPlaying && !gameState.shopOpen) {
+                    toggleCameraMode();
+                }
+                // Переключение оружия (1 - пистолет, 2 - дробовик)
+                if (e.key === '1' && gameState.isPlaying && !gameState.shopOpen) {
+                    switchWeapon('pistol');
+                }
+                if (e.key === '2' && gameState.isPlaying && !gameState.shopOpen) {
+                    switchWeapon('shotgun');
+                }
+                if (e.key === 'Escape' && gameState.shopOpen) {
+                    toggleShop();
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                const key = e.key.toLowerCase();
+                if (key in keys) keys[key] = false;
+                if (key === ' ') keys.space = false;
+                // Стрелки
+                if (e.key === 'ArrowUp') keys.arrowup = false;
+                if (e.key === 'ArrowDown') keys.arrowdown = false;
+                if (e.key === 'ArrowLeft') keys.arrowleft = false;
+                if (e.key === 'ArrowRight') keys.arrowright = false;
+            });
+
+            // Стрельба
+            document.addEventListener('mousedown', (e) => {
+                if (e.button === 0 && document.pointerLockElement && !gameState.shopOpen) {
+                    shoot();
+                }
+            });
+
+            // Закрытие магазина
+            document.getElementById('shop-close').addEventListener('click', toggleShop);
+
+            // Изменение размера окна
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        // ========== ДВИЖЕНИЕ ИГРОКА ==========
+        function updatePlayer(delta) {
+            if (!gameState.isPlaying || gameState.shopOpen) return;
+
+            // Направление движения (WASD + стрелки)
+            const moveDirection = new THREE.Vector3();
+
+            if (keys.w || keys.arrowup) moveDirection.z -= 1;
+            if (keys.s || keys.arrowdown) moveDirection.z += 1;
+            if (keys.a || keys.arrowleft) moveDirection.x -= 1;
+            if (keys.d || keys.arrowright) moveDirection.x += 1;
+
+            moveDirection.normalize();
+
+            // Применяем поворот игрока
+            const rotatedDirection = moveDirection.clone();
+            rotatedDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), playerRotationY);
+
+            // Новая позиция
+            const newX = player.position.x + rotatedDirection.x * PLAYER_SPEED * delta;
+            const newZ = player.position.z + rotatedDirection.z * PLAYER_SPEED * delta;
+
+            // Проверка коллизий по X и Z отдельно
+            if (!checkCollision(newX, player.position.z)) {
+                player.position.x = newX;
+            }
+            if (!checkCollision(player.position.x, newZ)) {
+                player.position.z = newZ;
+            }
+
+            // Прыжок
+            if (keys.space && isGrounded) {
+                playerVelocityY = JUMP_FORCE;
+                isGrounded = false;
+            }
+
+            // Гравитация
+            playerVelocityY += GRAVITY * delta;
+            player.position.y += playerVelocityY * delta;
+
+            // Игрок приземляется на землю (y=0)
+            if (player.position.y <= 0) {
+                player.position.y = 0;
+                playerVelocityY = 0;
+                isGrounded = true;
+            }
+
+            // Поворот игрока
+            player.rotation.y = playerRotationY;
+
+            // Анимация ходьбы
+            // Базовая позиция руки с пистолетом - вытянута ВПЕРЁД для прицеливания
+            const gunArmBaseRotation = Math.PI / 2.5; // Положительный = вперёд
+
+            if (moveDirection.length() > 0) {
+                const walkSpeed = 10;
+                const time = Date.now() * 0.001 * walkSpeed;
+                playerBody.leftLeg.rotation.x = Math.sin(time) * 0.5;
+                playerBody.rightLeg.rotation.x = Math.sin(time + Math.PI) * 0.5;
+                playerBody.leftArm.rotation.x = Math.sin(time + Math.PI) * 0.3;
+                // Правая рука с пистолетом вперёд + небольшое покачивание
+                playerBody.rightArmGroup.rotation.x = gunArmBaseRotation + Math.sin(time) * 0.05;
+            } else {
+                playerBody.leftLeg.rotation.x = 0;
+                playerBody.rightLeg.rotation.x = 0;
+                playerBody.leftArm.rotation.x = 0;
+                // Правая рука с пистолетом всегда вытянута вперёд
+                playerBody.rightArmGroup.rotation.x = gunArmBaseRotation;
+            }
+        }
+
+        // ========== КАМЕРА ==========
+        function updateCamera() {
+            if (cameraMode === 'third') {
+                // ===== ВИД ОТ ТРЕТЬЕГО ЛИЦА =====
+                const cameraDistance = 6;
+                const cameraHeight = 4;
+
+                const offsetX = Math.sin(playerRotationY) * cameraDistance;
+                const offsetZ = Math.cos(playerRotationY) * cameraDistance;
+
+                camera.position.x = player.position.x + offsetX;
+                camera.position.z = player.position.z + offsetZ;
+                camera.position.y = player.position.y + cameraHeight + Math.sin(cameraPitch) * 2;
+
+                // Камера смотрит на центр персонажа
+                const lookAtY = player.position.y + 2 + cameraPitch * 2;
+                camera.lookAt(player.position.x, lookAtY, player.position.z);
+
+                // Показываем игрока, скрываем FPS пистолет
+                player.visible = true;
+                playerBody.fpsGun.visible = false;
+
+            } else {
+                // ===== ВИД ОТ ПЕРВОГО ЛИЦА =====
+                // Камера на уровне глаз игрока
+                const eyeHeight = 2.8;
+                camera.position.x = player.position.x;
+                camera.position.z = player.position.z;
+                camera.position.y = player.position.y + eyeHeight;
+
+                // Направление взгляда
+                const lookDistance = 10;
+                const lookX = player.position.x - Math.sin(playerRotationY) * lookDistance;
+                const lookZ = player.position.z - Math.cos(playerRotationY) * lookDistance;
+                const lookY = player.position.y + eyeHeight + cameraPitch * 5;
+                camera.lookAt(lookX, lookY, lookZ);
+
+                // Скрываем игрока (кроме рук), показываем FPS пистолет
+                player.visible = false;
+
+                // Позиционируем пистолет для FPS вида (в правом нижнем углу экрана)
+                playerBody.fpsGun.visible = true;
+                const gunOffset = new THREE.Vector3(0.4, -0.3, -0.8);
+                gunOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), -playerRotationY);
+                playerBody.fpsGun.position.set(
+                    camera.position.x + gunOffset.x,
+                    camera.position.y + gunOffset.y + cameraPitch * 0.3,
+                    camera.position.z + gunOffset.z
+                );
+                playerBody.fpsGun.rotation.set(cameraPitch * 0.5, -playerRotationY + Math.PI, 0);
+            }
+        }
+
+        // Переключение режима камеры
+        function toggleCameraMode() {
+            if (cameraMode === 'third') {
+                cameraMode = 'first';
+                showMessage('Вид от первого лица (V - переключить)');
+            } else {
+                cameraMode = 'third';
+                showMessage('Вид от третьего лица (V - переключить)');
+            }
+        }
+
+        // ========== GAME OVER ==========
+        function gameOver() {
+            gameState.isPlaying = false;
+            document.exitPointerLock();
+            document.getElementById('finalKills').textContent = gameState.kills;
+            document.getElementById('gameOver').classList.add('visible');
+        }
+
+        function restartGame() {
+            // Сброс состояния
+            gameState = {
+                coins: 0,
+                ammo: 12,
+                maxAmmo: 12,
+                shotgunAmmo: 0,
+                maxShotgunAmmo: 6,
+                currentWeapon: 'pistol',
+                hasShotgun: false,
+                kills: 0,
+                health: 100,
+                maxHealth: 100,
+                armorHealth: 0,
+                maxArmorHealth: 0,
+                armorType: 0,
+                isPlaying: false,
+                shopOpen: false
+            };
+
+            // Очистка gore объектов
+            goreObjects.forEach(obj => scene.remove(obj));
+            goreObjects = [];
+
+            // Сброс оружия
+            playerBody.gun.visible = true;
+            playerBody.shotgun.visible = false;
+            updateShotgunUI();
+
+            // Сброс UI инвентаря
+            document.getElementById('slot1').classList.add('active');
+            document.getElementById('slot2').classList.remove('active');
+
+            // Удаление зомби
+            zombies.forEach(z => scene.remove(z));
+            zombies = [];
+
+            // Удаление мёртвых зомби
+            deadZombies.forEach(z => scene.remove(z));
+            deadZombies = [];
+
+            // Сброс позиции игрока (на землю y=0)
+            player.position.set(0, 0, 0);
+            player.visible = true;
+            playerRotationY = 0;
+            cameraPitch = 0;
+            cameraMode = 'third'; // Сброс на вид от третьего лица
+            playerBody.fpsGun.visible = false;
+
+            // Сброс брони - скрываем всю экипировку
+            hideAllArmorGear();
+            setVestColor(0x2a2a2a); // Сброс цвета жилета
+
+            // UI
+            document.getElementById('gameOver').classList.remove('visible');
+            document.getElementById('lockScreen').style.display = 'flex';
+            updateHUD();
+        }
+
+        // ========== ГЛАВНЫЙ ЦИКЛ ==========
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+
+            updatePlayer(delta);
+            updateCamera();
+            updateZombies(delta);
+            updateDeadZombies();
+            updateGore(delta);
+
+            renderer.render(scene, camera);
+        }
+
+        // Запуск игры
+        init();
+    </script>
+</body>
+</html>
