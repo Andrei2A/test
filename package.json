@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "3D Tactical Shooter - SWAT vs Zombies",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
