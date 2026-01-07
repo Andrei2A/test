@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SWAT Tactical 3D</title>
+    <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Lock Screen -->
+        <div id="lockScreen" class="overlay">
+            <h1>SWAT TACTICAL 3D</h1>
+            <p>WASD - движение | ЛКМ - стрельба | B - магазин | V - камера | 1,2 - оружие</p>
+            <button id="startBtn">НАЧАТЬ ИГРУ</button>
+        </div>
+
+        <!-- Crosshair -->
+        <div id="crosshair"></div>
+
+        <!-- Controls Panel -->
+        <div id="controlsPanel">
+            <span class="key">WASD</span> Движение
+            <span class="key">ЛКМ</span> Стрельба
+            <span class="key">1</span><span class="key">2</span> Оружие
+            <span class="key">B</span> Магазин
+        </div>
+
+        <!-- HUD -->
+        <div id="hud">
+            <div class="hud-item" id="coins">
+                <span class="icon">🪙</span>
+                <span id="coinsValue">0</span>
+            </div>
+            <div class="hud-item" id="ammo">
+                <span class="icon">🔫</span>
+                <span id="ammoValue">12/12</span>
+            </div>
+            <div class="hud-item" id="kills">
+                <span class="icon">💀</span>
+                <span id="killsValue">0</span>
+            </div>
+            <div class="bars">
+                <div class="bar" id="healthBar">
+                    <span class="bar-icon">❤️</span>
+                    <div class="bar-bg"><div class="bar-fill health-fill" id="healthFill"></div></div>
+                    <span class="bar-text" id="healthValue">100</span>
+                </div>
+                <div class="bar" id="armorBar" style="display: none;">
+                    <span class="bar-icon">🛡️</span>
+                    <div class="bar-bg"><div class="bar-fill armor-fill" id="armorFill"></div></div>
+                    <span class="bar-text" id="armorValue">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shop Button -->
+        <button id="shopButton">🏪 Магазин <span class="key-hint">B</span></button>
+
+        <!-- Inventory -->
+        <div id="inventory">
+            <div class="inv-slot active" id="slot1" data-weapon="pistol">
+                <span class="slot-num">1</span>
+                <span class="item-icon">🔫</span>
+                <span>Пистолет</span>
+            </div>
+            <div class="inv-slot" id="slot2" data-weapon="shotgun">
+                <span class="slot-num">2</span>
+                <span class="item-icon inactive" id="shotgunIcon">💥</span>
+                <span class="inactive" id="shotgunName">Дробовик</span>
+            </div>
+        </div>
+
+        <!-- Shop -->
+        <div id="shop" class="overlay hidden">
+            <div class="shop-header">
+                <button id="shopClose">✕</button>
+                <h2>МАГАЗИН</h2>
+            </div>
+            <div class="shop-content" id="shopItems"></div>
+            <div class="shop-footer">
+                <span class="shop-hint">B или ESC — закрыть</span>
+            </div>
+        </div>
+
+        <!-- Message -->
+        <div id="message"></div>
+
+        <!-- Game Over -->
+        <div id="gameOver" class="overlay hidden">
+            <h1>GAME OVER</h1>
+            <p>Убито зомби: <span id="finalKills">0</span></p>
+            <button id="restartBtn">ИГРАТЬ СНОВА</button>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

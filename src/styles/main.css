@@ -1,0 +1,443 @@
+/* ========== BASE STYLES ========== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #000;
+}
+
+.hidden { display: none !important; }
+.inactive { opacity: 0.3; }
+
+/* ========== OVERLAYS ========== */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    color: white;
+}
+
+.overlay h1 {
+    font-size: 48px;
+    margin-bottom: 20px;
+    text-shadow: 0 0 20px #ff4444;
+}
+
+.overlay p {
+    font-size: 16px;
+    margin-bottom: 30px;
+    color: #aaa;
+}
+
+.overlay button {
+    padding: 15px 40px;
+    font-size: 18px;
+    background: linear-gradient(135deg, #ff4444, #cc0000);
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.overlay button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(255, 68, 68, 0.5);
+}
+
+/* ========== CROSSHAIR ========== */
+#crosshair {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 100;
+}
+
+#crosshair::before,
+#crosshair::after {
+    content: '';
+    position: absolute;
+    background: white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+#crosshair::before {
+    width: 20px;
+    height: 2px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#crosshair::after {
+    width: 2px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* ========== CONTROLS PANEL ========== */
+#controlsPanel {
+    position: fixed;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px 20px;
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    z-index: 100;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.key {
+    background: linear-gradient(135deg, #4a4a4a, #2a2a2a);
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    border: 1px solid #666;
+    margin-right: 5px;
+    font-size: 12px;
+}
+
+/* ========== HUD ========== */
+#hud {
+    position: fixed;
+    top: 70px;
+    left: 20px;
+    color: white;
+    z-index: 100;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.hud-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 18px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 8px 15px;
+    border-radius: 5px;
+}
+
+.hud-item .icon {
+    margin-right: 10px;
+}
+
+.bars {
+    margin-top: 10px;
+}
+
+.bar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 6px 10px;
+    border-radius: 5px;
+}
+
+.bar-icon {
+    width: 24px;
+    margin-right: 8px;
+}
+
+.bar-bg {
+    width: 120px;
+    height: 16px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.bar-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 2px;
+}
+
+.health-fill {
+    background: linear-gradient(to bottom, #ff6b6b, #ee5a5a);
+    box-shadow: 0 0 10px rgba(255, 100, 100, 0.5);
+}
+
+.armor-fill {
+    background: linear-gradient(to bottom, #4a90d9, #357abd);
+    box-shadow: 0 0 10px rgba(74, 144, 217, 0.5);
+}
+
+.bar-text {
+    margin-left: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    min-width: 30px;
+}
+
+/* ========== SHOP BUTTON ========== */
+#shopButton {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #4a90d9, #357abd);
+    border: 2px solid #5fa8f5;
+    color: white;
+    padding: 12px 20px;
+    font-size: 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    z-index: 100;
+    transition: transform 0.2s;
+}
+
+#shopButton:hover {
+    transform: scale(1.05);
+}
+
+.key-hint {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin-left: 5px;
+}
+
+/* ========== INVENTORY ========== */
+#inventory {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 5px;
+    z-index: 100;
+}
+
+.inv-slot {
+    width: 60px;
+    height: 60px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #555;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    position: relative;
+}
+
+.inv-slot.active {
+    border-color: #ffcc00;
+    box-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
+}
+
+.inv-slot .slot-num {
+    position: absolute;
+    top: 2px;
+    left: 5px;
+    font-size: 10px;
+    color: #888;
+}
+
+.inv-slot .item-icon {
+    font-size: 24px;
+}
+
+/* ========== SHOP ========== */
+#shop {
+    background: linear-gradient(145deg, #0d0d0d, #1a1a1a);
+    border: 2px solid #333;
+    border-radius: 20px;
+    width: 450px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+#shop.hidden { display: none !important; }
+
+.shop-header {
+    background: linear-gradient(180deg, #1f1f1f, #141414);
+    padding: 20px 30px;
+    border-bottom: 1px solid #2a2a2a;
+    position: relative;
+}
+
+.shop-header h2 {
+    color: #e0e0e0;
+    text-align: center;
+    margin: 0;
+    font-size: 22px;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+}
+
+#shopClose {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+#shopClose:hover {
+    color: #fff;
+}
+
+.shop-content {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.shop-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(180deg, #1a1a1a, #141414);
+    padding: 15px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+    border: 1px solid #2a2a2a;
+    transition: all 0.2s ease;
+}
+
+.shop-item:hover {
+    background: linear-gradient(180deg, #222, #1a1a1a);
+    border-color: #3a3a3a;
+    transform: translateX(5px);
+}
+
+.shop-item-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.shop-item-icon {
+    font-size: 32px;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, #252525, #1a1a1a);
+    border-radius: 10px;
+    border: 1px solid #333;
+}
+
+.shop-item-name {
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.shop-item-desc {
+    color: #666;
+    font-size: 11px;
+}
+
+.shop-item-price {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.price-tag {
+    color: #ffd700;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.shop-btn {
+    padding: 10px 20px;
+    background: linear-gradient(180deg, #2d2d2d, #1f1f1f);
+    border: 1px solid #444;
+    color: #ccc;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+}
+
+.shop-btn:hover {
+    background: linear-gradient(180deg, #3a3a3a, #2a2a2a);
+    color: #fff;
+}
+
+.shop-btn:disabled {
+    background: #1a1a1a;
+    color: #444;
+    cursor: not-allowed;
+}
+
+.shop-footer {
+    background: #0d0d0d;
+    padding: 12px;
+    border-top: 1px solid #1a1a1a;
+    text-align: center;
+}
+
+.shop-hint {
+    color: #444;
+    font-size: 11px;
+}
+
+/* ========== MESSAGE ========== */
+#message {
+    position: fixed;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 15px 30px;
+    border-radius: 10px;
+    z-index: 150;
+    display: none;
+    font-size: 18px;
+}
+
+#message.visible {
+    display: block;
+    animation: fadeOut 2s forwards;
+}
+
+@keyframes fadeOut {
+    0% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* ========== GAME OVER ========== */
+#gameOver h1 {
+    color: #ff4444;
+}
